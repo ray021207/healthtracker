@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(python --version)",
+      "PowerShell(node --version)",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\apps\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\packages\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\apps\\\\admin\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\apps\\\\mobile\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\packages\\\\api\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\apps\\\\admin\\\\src\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\packages\\\\api\\\\src\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\packages\\\\api\\\\prisma\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\apps\\\\admin\\\\src\\\\pages\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\packages\\\\api\\\\src\\\\routes\")",
+      "Bash(dir \"D:\\\\PROJECTS\\\\healthtracker\\\\monark-health\\\\apps\\\\patient-web\")"
+    ]
+  }
+}
