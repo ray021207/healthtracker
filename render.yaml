@@ -5,7 +5,7 @@ services:
     plan: free
     region: oregon
     branch: main
-    buildCommand: npm ci && npx prisma generate --schema=packages/api/prisma/schema.prisma && npm run build -w @monark/api
+    buildCommand: npm ci --include=dev && npx prisma generate --schema=packages/api/prisma/schema.prisma && npm run build -w @monark/api
     startCommand: npx prisma migrate deploy --schema=packages/api/prisma/schema.prisma && node packages/api/dist/index.js
     healthCheckPath: /health
     envVars:
