@@ -1,4 +1,8 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+// In production (Vercel) this stays "" so requests hit /api/* on the same
+// origin and get proxied to Render via vercel.json rewrites — this keeps the
+// auth cookies same-site. Only falls back to a direct localhost URL in dev,
+// or if VITE_API_URL is explicitly set (e.g. to bypass the proxy).
+const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? "" : "http://localhost:3001");
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
