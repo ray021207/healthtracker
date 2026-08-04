@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://monark-api.onrender.com/api/$1" },
+    { "source": "/api/(.*)", "destination": "https://monark-api-sshc.onrender.com/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
