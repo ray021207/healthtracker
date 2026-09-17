@@ -189,18 +189,36 @@ export function StatCard({
   icon,
   value,
   label,
+  title,
+  onClick,
 }: {
   icon: ReactNode;
   value: ReactNode;
   label: string;
+  title?: string;
+  onClick?: () => void;
 }) {
-  return (
-    <div className="stat-card">
+  const content = (
+    <>
       <div className="icon-box">{icon}</div>
       <div>
         <div className="value">{value}</div>
         <div className="label">{label}</div>
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" className="stat-card clickable" title={title} onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="stat-card" title={title}>
+      {content}
     </div>
   );
 }

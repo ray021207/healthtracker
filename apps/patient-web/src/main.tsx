@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./lib/auth";
+import { PlanGenerationProvider } from "./lib/planGeneration";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -11,7 +12,9 @@ createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <PlanGenerationProvider>
+            <App />
+          </PlanGenerationProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

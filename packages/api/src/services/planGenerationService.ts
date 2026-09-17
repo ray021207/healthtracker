@@ -265,7 +265,7 @@ export async function generatePatientPlan(patientId: string, generatedBy: string
   });
 
   if (!patient?.healthProfile) {
-    throw new Error("Health profile required before generation");
+    throw new Error("This patient's health profile has not been entered yet, so a plan can't be generated.");
   }
 
   let rawText = "";

@@ -82,7 +82,7 @@ export default function LoginPage() {
             Monark Health
           </div>
           <div style={{ fontSize: 15, color: "var(--color-text-secondary)", marginTop: 12, maxWidth: 380, lineHeight: 1.6 }}>
-            Your wellness companion — built to work smoothly across phones, tablets, and desktops.
+            Personalised care, tracked daily, wherever you are.
           </div>
           <div style={{ display: "grid", gap: 10, marginTop: 24, maxWidth: 380 }}>
             {points.map((item) => (

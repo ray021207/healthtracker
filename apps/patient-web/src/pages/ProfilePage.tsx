@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Sparkles, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Sparkles, LogOut, Bell } from "lucide-react";
 
 import { useAuth } from "../lib/auth";
+import { usePlanGeneration } from "../lib/planGeneration";
 import { api } from "../lib/api";
+import { disableReminder, enableReminder, isPushSupported } from "../lib/push";
 import { Alert, Avatar, Badge, Button, Card } from "../components/ui";
 
 const tagsToString = (arr: string[]) => arr.join(", ");
@@ -23,6 +25,7 @@ function CheckRow({ label, sub, checked, onChange }: { label: string; sub: strin
 
 export default function ProfilePage() {
   const { user, accessToken, logout } = useAuth();
+  const { generating: planGenerating, status: planStatus, error: planError, generatePlan } = usePlanGeneration();
   const navigate = useNavigate();
 
   const [currentPw, setCurrentPw] = useState("");
@@ -44,8 +47,10 @@ export default function ProfilePage() {
     includeAntiInflammatory: false,
   });
 
-  const [planStatus, setPlanStatus] = useState("");
-  const [planGenerating, setPlanGenerating] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState("19:00");
+  const [reminderSaving, setReminderSaving] = useState(false);
+  const [reminderStatus, setReminderStatus] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -63,7 +68,51 @@ export default function ProfilePage() {
         });
       }
     }).finally(() => setHpLoading(false));
+
+    api.getProfile(accessToken).then((res) => {
+      const p = res?.profile;
+      if (p) {
+        setReminderEnabled(Boolean(p.reminderEnabled));
+        if (typeof p.reminderTime === "string") setReminderTime(p.reminderTime);
+      }
+    });
   }, [accessToken]);
+
+  const handleReminderToggle = async (checked: boolean) => {
+    if (!accessToken) return;
+    setReminderSaving(true);
+    setReminderStatus(null);
+    try {
+      if (checked) {
+        await enableReminder(reminderTime, accessToken);
+        setReminderEnabled(true);
+        setReminderStatus({ type: "ok", msg: `Daily reminder set for ${reminderTime}.` });
+      } else {
+        await disableReminder(accessToken);
+        setReminderEnabled(false);
+        setReminderStatus({ type: "ok", msg: "Daily reminder turned off." });
+      }
+    } catch (e) {
+      setReminderStatus({ type: "err", msg: e instanceof Error ? e.message : "Failed to update reminder" });
+    } finally {
+      setReminderSaving(false);
+    }
+  };
+
+  const handleReminderTimeChange = async (time: string) => {
+    setReminderTime(time);
+    if (!accessToken || !reminderEnabled) return;
+    setReminderSaving(true);
+    setReminderStatus(null);
+    try {
+      await enableReminder(time, accessToken);
+      setReminderStatus({ type: "ok", msg: `Daily reminder updated to ${time}.` });
+    } catch (e) {
+      setReminderStatus({ type: "err", msg: e instanceof Error ? e.message : "Failed to update reminder time" });
+    } finally {
+      setReminderSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -113,19 +162,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleGeneratePlan = async () => {
-    setPlanGenerating(true);
-    setPlanStatus("Generating your 90-day plan… this takes about a minute.");
-    try {
-      const res = await api.generatePlan(accessToken!);
-      setPlanStatus(res.message ?? "Plan generated successfully!");
-    } catch (e) {
-      setPlanStatus(e instanceof Error ? e.message : "Generation failed");
-    } finally {
-      setPlanGenerating(false);
-    }
-  };
-
   return (
     <div className="page-pad">
       <div className="mb-4">
@@ -154,7 +190,7 @@ export default function ProfilePage() {
           <div className="text-sm text-muted">Loading…</div>
         ) : !existingProfile ? (
           <div className="text-sm text-secondary" style={{ background: "var(--color-bg)", borderRadius: "var(--radius-md)", padding: 16, lineHeight: 1.6 }}>
-            Your practitioner needs to enter your clinical vitals before you can set preferences. Please visit your clinic first.
+            Your health profile hasn't been entered yet, so you can't set preferences or generate a plan. Your practitioner needs to add your clinical vitals first — please visit your clinic.
           </div>
         ) : (
           <form onSubmit={handleSavePrefs} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -204,12 +240,58 @@ export default function ProfilePage() {
               <div className="text-sm text-secondary mb-3" style={{ lineHeight: 1.6 }}>
                 Generate or regenerate your personalised 90-day plan based on your saved clinical profile and preferences.
               </div>
-              <Button block leftIcon={<Sparkles size={18} strokeWidth={1.5} />} loading={planGenerating} onClick={handleGeneratePlan}>
+              <Button block leftIcon={<Sparkles size={18} strokeWidth={1.5} />} loading={planGenerating} onClick={generatePlan}>
                 {planGenerating ? "Generating…" : "Generate My 90-Day Plan"}
               </Button>
               {planStatus && <div className="mt-3"><Alert variant={planGenerating ? "info" : "success"}>{planStatus}</Alert></div>}
+              {planError && <div className="mt-3"><Alert variant="error">{planError}</Alert></div>}
             </div>
           </form>
+        )}
+      </Card>
+
+      {/* Daily reminder */}
+      <Card className="mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Bell size={18} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
+          <h2 style={{ margin: 0 }}>Daily Reminder</h2>
+        </div>
+        <div className="text-sm text-secondary mb-4">Get a notification if you haven't logged your meals and progress yet.</div>
+
+        <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: isPushSupported() ? "pointer" : "not-allowed" }}>
+          <span className="font-medium" style={{ color: "var(--color-text-primary)" }}>Remind me daily</span>
+          <input
+            type="checkbox"
+            checked={reminderEnabled}
+            disabled={reminderSaving || !isPushSupported()}
+            onChange={(e) => handleReminderToggle(e.target.checked)}
+            style={{ width: 20, height: 20 }}
+          />
+        </label>
+
+        {!isPushSupported() && (
+          <div className="text-xs text-muted mt-2" style={{ lineHeight: 1.5 }}>
+            Notifications need the app installed to your home screen first (iPhone: open in Safari, tap Share, then "Add to Home Screen").
+          </div>
+        )}
+
+        {isPushSupported() && (
+          <div style={{ marginTop: 16, opacity: reminderEnabled ? 1 : 0.5 }}>
+            <label htmlFor="reminderTime">Reminder time</label>
+            <input
+              id="reminderTime"
+              type="time"
+              value={reminderTime}
+              disabled={!reminderEnabled || reminderSaving}
+              onChange={(e) => handleReminderTimeChange(e.target.value)}
+            />
+          </div>
+        )}
+
+        {reminderStatus && (
+          <div className="mt-3">
+            <Alert variant={reminderStatus.type === "ok" ? "success" : "error"}>{reminderStatus.msg}</Alert>
+          </div>
         )}
       </Card>
 
@@ -238,6 +320,12 @@ export default function ProfilePage() {
       <Button variant="destructive" block leftIcon={<LogOut size={18} strokeWidth={1.5} />} onClick={handleLogout}>
         Sign Out
       </Button>
+
+      <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", marginTop: 16 }}>
+        <Link to="/terms" style={{ color: "inherit" }}>Terms of Service</Link>
+        {" · "}
+        <Link to="/privacy" style={{ color: "inherit" }}>Privacy Policy</Link>
+      </p>
     </div>
   );
 }

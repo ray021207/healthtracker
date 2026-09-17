@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
+import { useAuth } from "../lib/auth";
 import { Card } from "../components/ui";
 
 const EFFECTIVE_DATE = "September 17, 2026";
@@ -132,6 +133,7 @@ function PrivacyContent() {
 
 export function LegalPage() {
   const location = useLocation();
+  const { user } = useAuth();
   const isPrivacy = location.pathname.includes("privacy");
 
   return (
@@ -146,7 +148,7 @@ export function LegalPage() {
     >
       <div style={{ width: "100%", maxWidth: 680 }}>
         <Link
-          to="/login"
+          to={user ? "/settings" : "/login"}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -157,7 +159,7 @@ export function LegalPage() {
             textDecoration: "none",
           }}
         >
-          <ArrowLeft size={14} strokeWidth={1.5} /> Back to sign in
+          <ArrowLeft size={14} strokeWidth={1.5} /> {user ? "Back to Settings" : "Back to sign in"}
         </Link>
 
         <Card>

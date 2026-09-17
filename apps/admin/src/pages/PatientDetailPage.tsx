@@ -211,6 +211,10 @@ export function PatientDetailPage() {
   const profile = hpData?.healthProfile ?? null;
 
   const generatePlan = async () => {
+    if (!profile) {
+      setPlanMsg({ text: "This patient's health profile has not been entered yet, so a plan can't be generated. Add their clinical profile first.", error: true });
+      return;
+    }
     setGenerating(true);
     setPlanMsg({ text: "Generating 90-day plan… this takes about 1–2 minutes." });
     try {
@@ -258,11 +262,27 @@ export function PatientDetailPage() {
             <Button variant="secondary" leftIcon={<Pencil size={16} strokeWidth={1.5} />} onClick={() => navigate(`/patients/${id}/health-profile`)}>
               Edit Profile
             </Button>
-            <Button leftIcon={<Sparkles size={16} strokeWidth={1.5} />} loading={generating} onClick={generatePlan}>
+            <Button
+              leftIcon={<Sparkles size={16} strokeWidth={1.5} />}
+              loading={generating}
+              disabled={!profile}
+              title={!profile ? "Add this patient's health profile before generating a plan" : undefined}
+              onClick={generatePlan}
+            >
               {plan ? "Regenerate Plan" : "Generate Plan"}
             </Button>
           </div>
         </div>
+        {!profile && (
+          <div className="mt-3">
+            <Alert variant="warning">Health profile not entered yet — a plan can't be generated until it is.</Alert>
+          </div>
+        )}
+        {planMsg && (
+          <div className="mt-3">
+            <Alert variant={planMsg.error ? "error" : "info"}>{planMsg.text}</Alert>
+          </div>
+        )}
       </Card>
 
       {/* Tabs */}
@@ -357,18 +377,23 @@ export function PatientDetailPage() {
                 <Button onClick={() => navigate("/plans/view", { state: { patientId: id } })}>
                   <FileText size={16} strokeWidth={1.5} /> View Full Plan
                 </Button>
-                <Button variant="secondary" loading={generating} onClick={generatePlan}>Regenerate</Button>
+                <Button variant="secondary" loading={generating} disabled={!profile} onClick={generatePlan}>Regenerate</Button>
               </div>
             </>
           ) : (
             <EmptyState
               icon={<Sparkles size={26} strokeWidth={1.5} />}
               title="No plan generated yet"
-              subtitle="Save a health profile first, then generate a 90-day plan."
-              action={<Button leftIcon={<Sparkles size={16} strokeWidth={1.5} />} loading={generating} onClick={generatePlan}>Generate 90-Day Plan</Button>}
+              subtitle={profile ? "Ready to generate a 90-day plan for this patient." : "Add this patient's health profile first, then you can generate a 90-day plan."}
+              action={
+                profile ? (
+                  <Button leftIcon={<Sparkles size={16} strokeWidth={1.5} />} loading={generating} onClick={generatePlan}>Generate 90-Day Plan</Button>
+                ) : (
+                  <Button leftIcon={<ArrowRight size={16} strokeWidth={1.5} />} onClick={() => navigate(`/patients/${id}/health-profile`)}>Add Clinical Profile</Button>
+                )
+              }
             />
           )}
-          {planMsg && <div className="mt-3"><Alert variant={planMsg.error ? "error" : "info"}>{planMsg.text}</Alert></div>}
         </Card>
       )}
 

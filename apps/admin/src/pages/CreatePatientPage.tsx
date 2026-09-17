@@ -25,6 +25,12 @@ function printCredentials(c: Credentials) {
   .pwd { font-size: 18px; font-weight: 600; color: #37325E; background: #E8E6F5; border-radius: 8px; padding: 8px 14px; display: inline-block; letter-spacing: 1px; }
   .notice { margin-top: 28px; font-size: 12px; color: #6B6580; border-top: 1px solid #E4E0EF; padding-top: 16px; line-height: 1.6; }
   .logo { font-size: 13px; font-weight: 600; color: #37325E; margin-bottom: 24px; }
+  .install { margin-top: 20px; border-top: 1px solid #E4E0EF; padding-top: 16px; }
+  .install h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #37325E; margin-bottom: 10px; }
+  .install-cols { display: flex; gap: 20px; }
+  .install-col { flex: 1; font-size: 11px; color: #6B6580; line-height: 1.6; }
+  .install-col strong { display: block; font-size: 12px; color: #1E1A2E; margin-bottom: 4px; }
+  .install-col ol { margin: 0; padding-left: 16px; }
 </style></head><body>
 <div class="logo">Monark Health</div>
 <h2>Patient Welcome Card</h2>
@@ -35,6 +41,31 @@ function printCredentials(c: Credentials) {
 <div class="field"><label>Gender</label><span>${c.gender.charAt(0) + c.gender.slice(1).toLowerCase()}</span></div>
 <div class="field"><label>Temporary Password</label><div class="pwd">${c.temporaryPassword}</div></div>
 <div class="notice">The patient must change this password on first login via the Patient Portal at <strong>${patientPortalLabel}</strong>. This card contains confidential information — store or shred securely.</div>
+<div class="install">
+  <h3>Add Monark Health to Your Home Screen</h3>
+  <div class="install-cols">
+    <div class="install-col">
+      <strong>iPhone / iPad</strong>
+      Must use <strong style="display:inline;font-size:11px;">Safari</strong> — this does not work in Chrome or other browsers on iOS.
+      <ol>
+        <li>Open ${patientPortalLabel} in Safari</li>
+        <li>Tap the Share icon (square with an arrow) in the toolbar</li>
+        <li>Scroll down and tap "Add to Home Screen"</li>
+        <li>Tap "Add" in the top right</li>
+      </ol>
+    </div>
+    <div class="install-col">
+      <strong>Android</strong>
+      Works in Chrome (recommended) or most other Android browsers.
+      <ol>
+        <li>Open ${patientPortalLabel} in Chrome</li>
+        <li>Tap the ⋮ menu (top right)</li>
+        <li>Tap "Add to Home screen" or "Install app"</li>
+        <li>Confirm by tapping "Add" / "Install"</li>
+      </ol>
+    </div>
+  </div>
+</div>
 </body></html>`);
   win.document.close();
   win.focus();

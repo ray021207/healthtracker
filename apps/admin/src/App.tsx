@@ -14,6 +14,7 @@ import { PatientProgressPage } from "./pages/PatientProgressPage";
 import { PatientsListPage } from "./pages/PatientsListPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ViewPlanPage } from "./pages/ViewPlanPage";
+import { ViewProgressPage } from "./pages/ViewProgressPage";
 
 function RequireAuth() {
   const { user } = useAuth();
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/patients/:id/progress" element={<PatientProgressPage />} />
           <Route path="/plans/generate" element={<GeneratePlanPage />} />
           <Route path="/plans/view" element={<ViewPlanPage />} />
+          <Route path="/progress/view" element={<ViewProgressPage />} />
           <Route path="/audit-logs" element={<AuditLogsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

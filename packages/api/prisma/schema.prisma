@@ -34,22 +34,41 @@ model Admin {
 }
 
 model Patient {
-  id            String        @id @default(uuid())
-  clinicId       String
-  email         String        @unique
-  passwordHash  String
-  firstName     String
-  lastName      String
-  dateOfBirth   DateTime
-  gender        Gender
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  clinic        Clinic        @relation(fields: [clinicId], references: [id])
-  healthProfile HealthProfile?
-  generatedPlan GeneratedPlan?
-  dailyLogs     DailyLog[]
-  auditLogs     AuditLog[]
+  id                String             @id @default(uuid())
+  clinicId          String
+  email             String             @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime
+  gender            Gender
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  clinic            Clinic             @relation(fields: [clinicId], references: [id])
+  healthProfile     HealthProfile?
+  generatedPlan     GeneratedPlan?
+  dailyLogs         DailyLog[]
+  auditLogs         AuditLog[]
+  pushSubscriptions PushSubscription[]
+
+  // Daily log reminder preferences
+  reminderEnabled      Boolean   @default(false)
+  reminderTime         String? // "HH:MM", 24h, interpreted in reminderTimezone
+  reminderTimezone     String? // IANA tz, e.g. "America/New_York"
+  reminderLastSentDate DateTime? @db.Date
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  patientId String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
 }
 
 model HealthProfile {
@@ -107,28 +126,28 @@ model GeneratedPlan {
 }
 
 model DailyLog {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   patientId        String
-  logDate          DateTime @db.Date
+  logDate          DateTime  @db.Date
   dayNumber        Int
-  breakfastDone    Boolean  @default(false)
-  lunchDone        Boolean  @default(false)
-  dinnerDone       Boolean  @default(false)
-  snack1Done       Boolean  @default(false)
-  snack2Done       Boolean  @default(false)
+  breakfastDone    Boolean   @default(false)
+  lunchDone        Boolean   @default(false)
+  dinnerDone       Boolean   @default(false)
+  snack1Done       Boolean   @default(false)
+  snack2Done       Boolean   @default(false)
   waterLitres      Float?
   mealNotes        String?
-  exerciseDone     Boolean  @default(false)
+  exerciseDone     Boolean   @default(false)
   exerciseDuration Int?
   exerciseNotes    String?
   weightKg         Float?
   energyLevel      Int?
   mood             Int?
   syncedAt         DateTime?
-  createdOffline   Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  patient          Patient  @relation(fields: [patientId], references: [id])
+  createdOffline   Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  patient          Patient   @relation(fields: [patientId], references: [id])
 
   @@unique([patientId, logDate])
 }

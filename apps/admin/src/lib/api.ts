@@ -60,7 +60,6 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
-  getDashboard: () => request<{ patients: unknown[] }>("/api/admin/patients"),
   getPatients: () => request<{ patients: Array<Record<string, unknown>> }>("/api/admin/patients"),
   getPatient: (id: string) => request<{ patient: Record<string, unknown> }>(`/api/admin/patients/${id}`),
   createPatient: (payload: Record<string, unknown>) =>

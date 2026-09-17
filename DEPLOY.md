@@ -58,6 +58,12 @@ same values by hand.
    - `CORS_ORIGINS` — leave a placeholder for now (e.g. `https://placeholder.vercel.app`), fill in
      for real after step 4. Browser calls go through the Vercel rewrite so this mostly matters as a
      fallback, but set it anyway.
+   - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` — optional, powers the patient app's
+     daily log reminder push notifications. Copy the values from your local `packages/api/.env` (same
+     rule as `ENCRYPTION_KEY`: reuse, don't regenerate, or existing patient subscriptions break). Leave
+     all three unset to skip reminders entirely — the app works fine without them, the toggle just
+     won't be available to patients. Also requires the Render instance to actually stay running (see
+     the free-tier cold-start note above) — a sleeping instance can't fire the per-minute reminder check.
 3. Deploy. First build takes a few minutes. Note the service URL Render assigns, e.g.
    `https://monark-api.onrender.com` (if `monark-api` is taken, Render suffixes it — grab whatever it
    actually gives you).

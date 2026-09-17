@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { authorizeRole } from "../middleware/authorizeRole.js";
+import { planGenerationRateLimiter } from "../middleware/rateLimit.js";
 import { createAuditLog } from "../services/auditLogService.js";
 import {
   ensurePatientInClinic,
@@ -45,14 +46,14 @@ const patientUpdateSchema = patientCreateSchema.partial().refine((input) => Obje
 const healthProfileUpsertSchema = z.object({
   heightCm: z.number().min(80).max(260),
   weightKg: z.number().min(70).max(500),
-  ldlMgDl: z.number().min(1).max(500).optional(),
-  hdlMgDl: z.number().min(1).max(200).optional(),
-  triglyceridesMgDl: z.number().min(1).max(1500).optional(),
-  fastingGlucoseMgDl: z.number().min(1).max(500).optional(),
-  hba1cPercent: z.number().min(1).max(20).optional(),
+  ldlMgDl: z.number().min(1).max(500).optional().nullable(),
+  hdlMgDl: z.number().min(1).max(200).optional().nullable(),
+  triglyceridesMgDl: z.number().min(1).max(1500).optional().nullable(),
+  fastingGlucoseMgDl: z.number().min(1).max(500).optional().nullable(),
+  hba1cPercent: z.number().min(1).max(20).optional().nullable(),
   isDiabetic: z.boolean().optional().default(false),
-  systolicBp: z.number().int().min(60).max(260).optional(),
-  diastolicBp: z.number().int().min(40).max(180).optional(),
+  systolicBp: z.number().int().min(60).max(260).optional().nullable(),
+  diastolicBp: z.number().int().min(40).max(180).optional().nullable(),
   activityLevel: z.nativeEnum(ActivityLevel),
   dietStyle: z.nativeEnum(DietStyle),
   dietaryRestrictions: z.array(z.string().trim().min(1).max(100)).default([]),
@@ -101,6 +102,8 @@ router.get("/patients", async (req, res, next) => {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        generatedPlan: { select: { generatedAt: true, regeneratedAt: true, status: true } },
+        dailyLogs: { orderBy: { logDate: "desc" }, take: 1, select: { logDate: true } },
       },
     });
 
@@ -610,7 +613,7 @@ router.put("/patients/:id/health-profile", async (req, res, next) => {
   }
 });
 
-router.post("/patients/:id/generate-plan", async (req, res, next) => {
+router.post("/patients/:id/generate-plan", planGenerationRateLimiter, async (req, res, next) => {
   try {
     const user = req.user;
     if (!user?.clinicId) {
@@ -618,9 +621,15 @@ router.post("/patients/:id/generate-plan", async (req, res, next) => {
       return;
     }
 
-    const target = await ensurePatientInClinic(req.params.id, user.clinicId);
+    const target = await ensurePatientInClinic(String(req.params.id), user.clinicId);
     if (!target) {
       res.status(404).json({ message: "Patient not found" });
+      return;
+    }
+
+    const healthProfile = await prisma.healthProfile.findUnique({ where: { patientId: target.id } });
+    if (!healthProfile) {
+      res.status(400).json({ message: "This patient's health profile has not been entered yet, so a plan can't be generated." });
       return;
     }
 

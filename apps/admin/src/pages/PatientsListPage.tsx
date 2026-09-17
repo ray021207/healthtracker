@@ -1,12 +1,20 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { Search, UserPlus, Users, ArrowRight, Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Search, UserPlus, Users, ArrowRight, Archive, ArchiveRestore, Trash2, X } from "lucide-react";
 
 import { api } from "../lib/api";
+import { isDisengaged } from "../lib/patientInsights";
 import { Alert, Avatar, Badge, Button, Card, EmptyState, Skeleton } from "../components/ui";
 
 const PAGE_SIZE = 10;
+
+const PLAN_FILTER_LABEL: Record<string, string> = {
+  with: "Patients with an active plan",
+  without: "Patients awaiting a plan",
+  today: "Plans generated today",
+  disengaged: "Patients who haven't logged in a while",
+};
 
 export function PatientsListPage() {
   const navigate = useNavigate();
@@ -15,6 +23,8 @@ export function PatientsListPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [status, setStatus] = useState<{ text: string; variant: "success" | "error" | "info" } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const planFilter = searchParams.get("plan");
 
   const archiveMutation = useMutation({
     mutationFn: (patientId: string) => api.archivePatient(patientId),
@@ -53,9 +63,26 @@ export function PatientsListPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return patients;
-    return patients.filter((p) => `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase().includes(q));
-  }, [patients, search]);
+    let result = patients;
+
+    if (planFilter === "with") {
+      result = result.filter((p) => p.generatedPlan);
+    } else if (planFilter === "without") {
+      result = result.filter((p) => !p.generatedPlan);
+    } else if (planFilter === "today") {
+      const today = new Date().toDateString();
+      result = result.filter((p) => {
+        const gp = p.generatedPlan as { generatedAt?: string; regeneratedAt?: string | null } | null | undefined;
+        if (!gp) return false;
+        return new Date(gp.regeneratedAt ?? gp.generatedAt ?? "").toDateString() === today;
+      });
+    } else if (planFilter === "disengaged") {
+      result = result.filter(isDisengaged);
+    }
+
+    if (!q) return result;
+    return result.filter((p) => `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase().includes(q));
+  }, [patients, search, planFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pageCount - 1);
@@ -85,6 +112,39 @@ export function PatientsListPage() {
         </Button>
       </div>
 
+      {planFilter && PLAN_FILTER_LABEL[planFilter] && (
+        <div className="mb-4">
+          <span
+            className="flex items-center gap-2"
+            style={{
+              display: "inline-flex",
+              background: "var(--color-primary-subtle)",
+              color: "var(--color-primary-dark)",
+              borderRadius: "var(--radius-md)",
+              padding: "6px 10px 6px 14px",
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            Filter: {PLAN_FILTER_LABEL[planFilter]}
+            <button
+              type="button"
+              aria-label="Clear filter"
+              onClick={() => {
+                setSearchParams((params) => {
+                  params.delete("plan");
+                  return params;
+                });
+                setPage(0);
+              }}
+              style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", display: "flex", padding: 2 }}
+            >
+              <X size={14} strokeWidth={1.5} />
+            </button>
+          </span>
+        </div>
+      )}
+
       {status && <Alert variant={status.variant}>{status.text}</Alert>}
 
       <Card flush>
@@ -111,6 +171,7 @@ export function PatientsListPage() {
                   <th>Patient</th>
                   <th>Email</th>
                   <th>Status</th>
+                  <th>Plan</th>
                   <th />
                 </tr>
               </thead>
@@ -131,6 +192,15 @@ export function PatientsListPage() {
                       <td className="text-secondary text-sm">{String(patient.email)}</td>
                       <td>
                         <Badge variant={active ? "success" : "neutral"}>{active ? "Active" : "Inactive"}</Badge>
+                      </td>
+                      <td>
+                        {isDisengaged(patient) ? (
+                          <Badge variant="warning">Disengaged</Badge>
+                        ) : patient.generatedPlan ? (
+                          <Badge variant="success">Generated</Badge>
+                        ) : (
+                          <Badge variant="neutral">No plan</Badge>
+                        )}
                       </td>
                       <td style={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">

@@ -70,7 +70,18 @@ export function GeneratePlanPage() {
   const patients = (data?.patients ?? []) as Record<string, unknown>[];
   const selected = useMemo(() => patients.find((p) => String(p.id) === patientId), [patients, patientId]);
 
+  const { data: hpData, isFetching: hpChecking } = useQuery({
+    queryKey: ["health-profile", patientId],
+    queryFn: () => api.getHealthProfile(patientId),
+    enabled: Boolean(patientId),
+  });
+  const hasProfile = Boolean(hpData?.healthProfile);
+
   const generate = async () => {
+    if (!hasProfile) {
+      setStatus({ text: "This patient's health profile has not been entered yet, so a plan can't be generated. Add their clinical profile first.", error: true });
+      return;
+    }
     setGenerating(true);
     setStatus({ text: "Generating 90-day plan… this takes about 1–2 minutes." });
     try {
@@ -197,14 +208,27 @@ export function GeneratePlanPage() {
                   A 90-day diet, exercise, and wellness plan will be generated based on this patient's saved clinical
                   profile. This may take 1–2 minutes.
                 </p>
+                {!hpChecking && !hasProfile && (
+                  <div className="mt-3">
+                    <Alert variant="warning">
+                      This patient's health profile has not been entered yet — a plan can't be generated until it is.
+                    </Alert>
+                  </div>
+                )}
                 {status && <div className="mt-3"><Alert variant={status.error ? "error" : "info"}>{status.text}</Alert></div>}
                 <div className="flex justify-between mt-4">
                   <Button variant="secondary" leftIcon={<ArrowLeft size={16} strokeWidth={1.5} />} disabled={generating} onClick={() => setStep(1)}>
                     Back
                   </Button>
-                  <Button leftIcon={<Sparkles size={16} strokeWidth={1.5} />} loading={generating} onClick={generate}>
-                    Generate Plan
-                  </Button>
+                  {hasProfile ? (
+                    <Button leftIcon={<Sparkles size={16} strokeWidth={1.5} />} loading={generating} onClick={generate}>
+                      Generate Plan
+                    </Button>
+                  ) : (
+                    <Button leftIcon={<ArrowRight size={16} strokeWidth={1.5} />} disabled={hpChecking} onClick={() => navigate(`/patients/${patientId}/health-profile`)}>
+                      Add Clinical Profile
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

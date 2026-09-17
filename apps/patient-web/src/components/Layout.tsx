@@ -1,7 +1,8 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, CalendarCheck, TrendingUp, User, Leaf, LogOut } from "lucide-react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Home, ClipboardList, CalendarCheck, TrendingUp, User, Leaf, LogOut, Sparkles, X } from "lucide-react";
 
 import { useAuth } from "../lib/auth";
+import { usePlanGeneration } from "../lib/planGeneration";
 
 const TABS = [
   { to: "/home", icon: Home, label: "Home" },
@@ -13,11 +14,18 @@ const TABS = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { generating, status, error, dismiss } = usePlanGeneration();
+  const location = useLocation();
   const navigate = useNavigate();
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
+
+  // ProfilePage already shows this same status inline, so the global banner
+  // only needs to appear elsewhere — it's what lets generation keep running
+  // (and stay visible) while the patient explores other tabs.
+  const showBanner = (generating || status || error) && location.pathname !== "/profile";
 
   return (
     <div className="app-frame">
@@ -54,6 +62,38 @@ export default function Layout() {
           </button>
         </div>
       </header>
+
+      {showBanner && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 16px",
+            fontSize: 13,
+            fontWeight: 500,
+            background: generating
+              ? "var(--color-info-subtle)"
+              : error
+                ? "var(--color-error-subtle)"
+                : "var(--color-success-subtle)",
+            color: generating ? "var(--color-info-text)" : error ? "var(--color-error)" : "var(--color-success)",
+          }}
+        >
+          <Sparkles size={15} strokeWidth={1.5} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>{generating ? "Generating your 90-day plan…" : (error ?? status)}</span>
+          {!generating && (
+            <button
+              type="button"
+              onClick={dismiss}
+              aria-label="Dismiss"
+              style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", display: "flex", padding: 2 }}
+            >
+              <X size={15} strokeWidth={1.5} />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="app-body page-enter">
         <Outlet />

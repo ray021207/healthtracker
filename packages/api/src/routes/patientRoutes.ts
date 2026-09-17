@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { authorizeRole } from "../middleware/authorizeRole.js";
+import { planGenerationRateLimiter } from "../middleware/rateLimit.js";
 import { createAuditLog } from "../services/auditLogService.js";
 import { generatePatientPlan, getPatientPlan } from "../services/planGenerationService.js";
 import { generateDietPDF, generateExercisePDF } from "../services/pdfService.js";
@@ -20,6 +21,7 @@ import {
 } from "../utils/clinicalCalculations.js";
 import { normalizeWeightToLb } from "../utils/unitNormalization.js";
 import { decryptHealthProfileFields, encryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
+import { env } from "../config/env.js";
 
 const router = Router();
 
@@ -59,14 +61,14 @@ const bulkSyncSchema = z.object({
 const patientHealthProfileSchema = z.object({
   heightCm: z.number().min(80).max(260),
   weightKg: z.number().min(70).max(500),
-  ldlMgDl: z.number().min(1).max(500).optional(),
-  hdlMgDl: z.number().min(1).max(200).optional(),
-  triglyceridesMgDl: z.number().min(1).max(1500).optional(),
-  fastingGlucoseMgDl: z.number().min(1).max(500).optional(),
-  hba1cPercent: z.number().min(1).max(20).optional(),
+  ldlMgDl: z.number().min(1).max(500).optional().nullable(),
+  hdlMgDl: z.number().min(1).max(200).optional().nullable(),
+  triglyceridesMgDl: z.number().min(1).max(1500).optional().nullable(),
+  fastingGlucoseMgDl: z.number().min(1).max(500).optional().nullable(),
+  hba1cPercent: z.number().min(1).max(20).optional().nullable(),
   isDiabetic: z.boolean().optional().default(false),
-  systolicBp: z.number().int().min(60).max(260).optional(),
-  diastolicBp: z.number().int().min(40).max(180).optional(),
+  systolicBp: z.number().int().min(60).max(260).optional().nullable(),
+  diastolicBp: z.number().int().min(40).max(180).optional().nullable(),
   activityLevel: z.nativeEnum(ActivityLevel),
   dietStyle: z.nativeEnum(DietStyle),
   dietaryRestrictions: z.array(z.string().trim().min(1).max(100)).default([]),
@@ -105,6 +107,9 @@ router.get("/profile", async (req, res, next) => {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        reminderEnabled: true,
+        reminderTime: true,
+        reminderTimezone: true,
       },
     });
 
@@ -667,7 +672,7 @@ router.put("/health-profile", async (req, res, next) => {
   }
 });
 
-router.post("/generate-plan", async (req, res, next) => {
+router.post("/generate-plan", planGenerationRateLimiter, async (req, res, next) => {
   try {
     if (!req.user) {
       res.status(401).json({ message: "Authentication required" });
@@ -713,6 +718,91 @@ router.get("/progress", async (req, res, next) => {
     const progress = await getPatientProgressStats(req.user.id);
 
     res.status(200).json({ progress });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/push/public-key", (req, res) => {
+  if (!env.pushEnabled) {
+    res.status(503).json({ message: "Push notifications are not configured on this server." });
+    return;
+  }
+  res.status(200).json({ publicKey: env.vapidPublicKey });
+});
+
+const pushSubscribeSchema = z.object({
+  subscription: z.object({
+    endpoint: z.string().url(),
+    keys: z.object({ p256dh: z.string(), auth: z.string() }),
+  }),
+  reminderTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "reminderTime must be HH:MM (24h)"),
+  timezone: z.string().min(1).max(100),
+});
+
+router.post("/push/subscribe", async (req, res, next) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: "Authentication required" });
+      return;
+    }
+    if (!env.pushEnabled) {
+      res.status(503).json({ message: "Push notifications are not configured on this server." });
+      return;
+    }
+
+    const parsed = pushSubscribeSchema.parse(req.body);
+
+    await prisma.pushSubscription.upsert({
+      where: { endpoint: parsed.subscription.endpoint },
+      create: {
+        patientId: req.user.id,
+        endpoint: parsed.subscription.endpoint,
+        p256dh: parsed.subscription.keys.p256dh,
+        auth: parsed.subscription.keys.auth,
+      },
+      update: {
+        patientId: req.user.id,
+        p256dh: parsed.subscription.keys.p256dh,
+        auth: parsed.subscription.keys.auth,
+      },
+    });
+
+    await prisma.patient.update({
+      where: { id: req.user.id },
+      data: {
+        reminderEnabled: true,
+        reminderTime: parsed.reminderTime,
+        reminderTimezone: parsed.timezone,
+      },
+    });
+
+    res.status(200).json({ message: "Daily reminder enabled." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/push/unsubscribe", async (req, res, next) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: "Authentication required" });
+      return;
+    }
+
+    const endpoint = typeof req.body?.endpoint === "string" ? req.body.endpoint : undefined;
+    if (endpoint) {
+      await prisma.pushSubscription.deleteMany({ where: { patientId: req.user.id, endpoint } });
+    } else {
+      await prisma.pushSubscription.deleteMany({ where: { patientId: req.user.id } });
+    }
+
+    await prisma.patient.update({
+      where: { id: req.user.id },
+      data: { reminderEnabled: false },
+    });
+
+    res.status(200).json({ message: "Daily reminder turned off." });
   } catch (error) {
     next(error);
   }

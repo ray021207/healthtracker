@@ -150,4 +150,29 @@ export const api = {
 
   updateHealthProfile: (data: Record<string, unknown>, token: string) =>
     req<{ healthProfile: Record<string, unknown> }>("/api/patient/health-profile", { method: "PUT", body: JSON.stringify(data) }, token),
+
+  getProfile: (token: string) =>
+    req<{ profile: Record<string, unknown> }>("/api/patient/profile", {}, token).catch(() => null),
+
+  getPushPublicKey: (token: string) =>
+    req<{ publicKey: string }>("/api/patient/push/public-key", {}, token),
+
+  subscribePush: (
+    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+    reminderTime: string,
+    timezone: string,
+    token: string,
+  ) =>
+    req<{ message: string }>(
+      "/api/patient/push/subscribe",
+      { method: "POST", body: JSON.stringify({ subscription, reminderTime, timezone }) },
+      token,
+    ),
+
+  unsubscribePush: (endpoint: string | undefined, token: string) =>
+    req<{ message: string }>(
+      "/api/patient/push/unsubscribe",
+      { method: "POST", body: JSON.stringify({ endpoint }) },
+      token,
+    ),
 };

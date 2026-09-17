@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "../lib/api";
 import { markDemoCredentialsChanged, useAuth } from "../lib/auth";
@@ -116,6 +116,12 @@ export function SettingsPage() {
           </Button>
         </form>
       </Card>
+
+      <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 20 }}>
+        <Link to="/terms" style={{ color: "inherit" }}>Terms of Service</Link>
+        {" · "}
+        <Link to="/privacy" style={{ color: "inherit" }}>Privacy Policy</Link>
+      </p>
     </div>
   );
 }

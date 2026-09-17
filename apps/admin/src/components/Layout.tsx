@@ -5,6 +5,7 @@ import {
   UserPlus,
   Sparkles,
   FileText,
+  TrendingUp,
   ScrollText,
   Settings,
   LogOut,
@@ -22,6 +23,7 @@ const NAV_LINKS = [
   { to: "/patients/create", icon: UserPlus, label: "Create Patient" },
   { to: "/plans/generate", icon: Sparkles, label: "Generate Plan" },
   { to: "/plans/view", icon: FileText, label: "View Plan" },
+  { to: "/progress/view", icon: TrendingUp, label: "View Progress" },
   { to: "/audit-logs", icon: ScrollText, label: "Audit Logs" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ] as const;
@@ -37,6 +39,7 @@ const TITLE_RULES: Array<[RegExp, string]> = [
   [/^\/patients/, "Patients"],
   [/^\/plans\/generate/, "Generate Plan"],
   [/^\/plans\/view/, "Wellness Plan"],
+  [/^\/progress\/view/, "View Progress"],
   [/^\/audit-logs/, "Audit Logs"],
   [/^\/settings/, "Settings"],
 ];
