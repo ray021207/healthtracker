@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Leaf } from "lucide-react";
 
-import { useAuth } from "../lib/auth";
+import { hasChangedDemoCredentials, useAuth } from "../lib/auth";
 import { Alert, Button, TextInput } from "../components/ui";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState("admin@monarkhealth.com");
-  const [password, setPassword] = useState("Admin@12345");
+  const demoCredentialsAvailable = !hasChangedDemoCredentials();
+  const [email, setEmail] = useState(demoCredentialsAvailable ? "admin@monarkhealth.com" : "");
+  const [password, setPassword] = useState(demoCredentialsAvailable ? "Admin@12345" : "");
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +42,7 @@ export function LoginPage() {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
-        background: "linear-gradient(135deg, #F0EDF9, #F9F8FC)",
+        background: "var(--gradient-auth)",
       }}
     >
       <div style={{ width: "100%", maxWidth: 420 }}>
@@ -103,10 +104,19 @@ export function LoginPage() {
               {loading ? "Signing in…" : "Sign In"}
             </Button>
           </form>
-          <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", marginTop: 18 }}>
-            Demo credentials pre-filled
-          </p>
+          {demoCredentialsAvailable && (
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", marginTop: 18 }}>
+              Demo credentials pre-filled
+            </p>
+          )}
         </div>
+
+        <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", marginTop: 20 }}>
+          By signing in you agree to the{" "}
+          <Link to="/terms" style={{ color: "var(--color-text-secondary)" }}>Terms of Service</Link>{" "}
+          and{" "}
+          <Link to="/privacy" style={{ color: "var(--color-text-secondary)" }}>Privacy Policy</Link>.
+        </p>
       </div>
     </div>
   );

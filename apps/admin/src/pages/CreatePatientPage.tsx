@@ -8,20 +8,23 @@ import { Alert, Badge, Button, Card, SelectInput, TextInput } from "../component
 
 interface Credentials { email: string; temporaryPassword: string; firstName: string; lastName: string; dateOfBirth: string; gender: string }
 
+const patientPortalUrl = import.meta.env.VITE_PATIENT_PORTAL_URL ?? "http://localhost:8082";
+const patientPortalLabel = patientPortalUrl.replace(/^https?:\/\//, "");
+
 function printCredentials(c: Credentials) {
   const win = window.open("", "_blank", "width=520,height=480");
   if (!win) return;
   win.document.write(`<!doctype html><html><head><title>Patient Credentials</title>
 <style>
   body { font-family: Inter, Arial, sans-serif; padding: 40px; color: #1E1A2E; background: #fff; }
-  h2 { font-size: 20px; margin-bottom: 4px; color: #5A4F78; }
+  h2 { font-size: 20px; margin-bottom: 4px; color: #37325E; }
   .sub { font-size: 13px; color: #6B6580; margin-bottom: 28px; }
   .field { margin-bottom: 14px; }
   .field label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #A8A3B8; display: block; margin-bottom: 3px; }
   .field span { font-size: 15px; font-weight: 600; color: #1E1A2E; }
-  .pwd { font-size: 18px; font-weight: 600; color: #5A4F78; background: #EDE9F6; border-radius: 8px; padding: 8px 14px; display: inline-block; letter-spacing: 1px; }
+  .pwd { font-size: 18px; font-weight: 600; color: #37325E; background: #E8E6F5; border-radius: 8px; padding: 8px 14px; display: inline-block; letter-spacing: 1px; }
   .notice { margin-top: 28px; font-size: 12px; color: #6B6580; border-top: 1px solid #E4E0EF; padding-top: 16px; line-height: 1.6; }
-  .logo { font-size: 13px; font-weight: 600; color: #5A4F78; margin-bottom: 24px; }
+  .logo { font-size: 13px; font-weight: 600; color: #37325E; margin-bottom: 24px; }
 </style></head><body>
 <div class="logo">Monark Health</div>
 <h2>Patient Welcome Card</h2>
@@ -31,7 +34,7 @@ function printCredentials(c: Credentials) {
 <div class="field"><label>Date of Birth</label><span>${new Date(c.dateOfBirth).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</span></div>
 <div class="field"><label>Gender</label><span>${c.gender.charAt(0) + c.gender.slice(1).toLowerCase()}</span></div>
 <div class="field"><label>Temporary Password</label><div class="pwd">${c.temporaryPassword}</div></div>
-<div class="notice">The patient must change this password on first login via the Patient Portal at <strong>localhost:8082</strong>. This card contains confidential information — store or shred securely.</div>
+<div class="notice">The patient must change this password on first login via the Patient Portal at <strong>${patientPortalLabel}</strong>. This card contains confidential information — store or shred securely.</div>
 </body></html>`);
   win.document.close();
   win.focus();

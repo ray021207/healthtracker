@@ -7,12 +7,17 @@ const required = [
   "JWT_ACCESS_EXPIRY",
   "JWT_REFRESH_EXPIRY",
   "CORS_ORIGINS",
+  "ENCRYPTION_KEY",
 ] as const;
 
 for (const key of required) {
   if (!process.env[key]) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
+}
+
+if (!/^[0-9a-fA-F]{64}$/.test(process.env.ENCRYPTION_KEY as string)) {
+  throw new Error("ENCRYPTION_KEY must be a 32-byte hex string (64 hex characters)");
 }
 
 const parseCsv = (value: string): string[] =>
@@ -29,5 +34,6 @@ export const env = {
   jwtAccessExpiry: process.env.JWT_ACCESS_EXPIRY as string,
   jwtRefreshExpiry: process.env.JWT_REFRESH_EXPIRY as string,
   corsOrigins: parseCsv(process.env.CORS_ORIGINS as string),
+  encryptionKey: process.env.ENCRYPTION_KEY as string,
   isProd: (process.env.NODE_ENV ?? "development") === "production",
 } as const;

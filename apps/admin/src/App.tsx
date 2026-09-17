@@ -7,6 +7,7 @@ import { CreatePatientPage } from "./pages/CreatePatientPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EditHealthProfilePage } from "./pages/EditHealthProfilePage";
 import { GeneratePlanPage } from "./pages/GeneratePlanPage";
+import { LegalPage } from "./pages/LegalPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PatientDetailPage } from "./pages/PatientDetailPage";
 import { PatientProgressPage } from "./pages/PatientProgressPage";
@@ -24,6 +25,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/terms" element={<LegalPage />} />
+      <Route path="/privacy" element={<LegalPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<DashboardPage />} />

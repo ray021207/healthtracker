@@ -19,6 +19,24 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const DEMO_CREDENTIALS_KEY = "mh_demo_credentials_changed";
+
+export function markDemoCredentialsChanged() {
+  try {
+    localStorage.setItem(DEMO_CREDENTIALS_KEY, "1");
+  } catch {
+    // ignore storage errors (e.g. private browsing)
+  }
+}
+
+export function hasChangedDemoCredentials(): boolean {
+  try {
+    return localStorage.getItem(DEMO_CREDENTIALS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     try {

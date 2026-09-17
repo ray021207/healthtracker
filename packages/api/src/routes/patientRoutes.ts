@@ -18,6 +18,8 @@ import {
   calculateTDEE,
   calculateTargetWeight,
 } from "../utils/clinicalCalculations.js";
+import { normalizeWeightToLb } from "../utils/unitNormalization.js";
+import { decryptHealthProfileFields, encryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
 
 const router = Router();
 
@@ -39,12 +41,12 @@ const dailyLogInputSchema = z.object({
   dinnerDone: z.boolean().optional(),
   snack1Done: z.boolean().optional(),
   snack2Done: z.boolean().optional(),
-  waterLitres: z.number().min(0).max(10).optional(),
+  waterLitres: z.number().min(0).max(400).optional(),
   mealNotes: z.string().max(1000).optional(),
   exerciseDone: z.boolean().optional(),
   exerciseDuration: z.number().int().min(0).max(720).optional(),
   exerciseNotes: z.string().max(1000).optional(),
-  weightKg: z.number().min(20).max(400).optional(),
+  weightKg: z.number().min(70).max(500).optional(),
   energyLevel: z.number().int().min(1).max(5).optional(),
   mood: z.number().int().min(1).max(5).optional(),
   createdOffline: z.boolean().optional(),
@@ -56,7 +58,7 @@ const bulkSyncSchema = z.object({
 
 const patientHealthProfileSchema = z.object({
   heightCm: z.number().min(80).max(260),
-  weightKg: z.number().min(20).max(400),
+  weightKg: z.number().min(70).max(500),
   ldlMgDl: z.number().min(1).max(500).optional(),
   hdlMgDl: z.number().min(1).max(200).optional(),
   triglyceridesMgDl: z.number().min(1).max(1500).optional(),
@@ -139,7 +141,18 @@ router.get("/health-profile", async (req, res, next) => {
       patientId: req.user.id,
     });
 
-    res.status(200).json({ healthProfile: profile });
+    if (!profile) {
+      res.status(200).json({ healthProfile: null });
+      return;
+    }
+
+    res.status(200).json({
+      healthProfile: {
+        ...decryptHealthProfileFields(profile),
+        weightKg: normalizeWeightToLb(profile.weightKg),
+        targetWeightKg: normalizeWeightToLb(profile.targetWeightKg),
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -272,7 +285,12 @@ router.get("/logs", async (req, res, next) => {
       orderBy: { logDate: "desc" },
     });
 
-    res.status(200).json({ logs });
+    res.status(200).json({
+      logs: logs.map((log) => ({
+        ...log,
+        weightKg: typeof log.weightKg === "number" ? normalizeWeightToLb(log.weightKg) : log.weightKg,
+      })),
+    });
   } catch (error) {
     next(error);
   }
@@ -295,7 +313,14 @@ router.get("/logs/:date", async (req, res, next) => {
       },
     });
 
-    res.status(200).json({ log });
+    res.status(200).json({
+      log: log
+        ? {
+            ...log,
+            weightKg: typeof log.weightKg === "number" ? normalizeWeightToLb(log.weightKg) : log.weightKg,
+          }
+        : null,
+    });
   } catch (error) {
     next(error);
   }
@@ -580,6 +605,7 @@ router.put("/health-profile", async (req, res, next) => {
     const tdee = calculateTDEE(bmr, parsed.activityLevel);
     const dailyCalorieTarget = calculateDailyCalorieTarget(tdee, parsed.weightKg, targetWeightKg);
     const macros = calculateMacros(dailyCalorieTarget, parsed.dietStyle);
+    const encryptedFields = encryptHealthProfileFields(parsed);
 
     const healthProfile = await prisma.healthProfile.upsert({
       where: { patientId: patient.id },
@@ -589,20 +615,11 @@ router.put("/health-profile", async (req, res, next) => {
         weightKg: parsed.weightKg,
         targetWeightKg,
         bmi,
-        ldlMgDl: parsed.ldlMgDl,
-        hdlMgDl: parsed.hdlMgDl,
-        triglyceridesMgDl: parsed.triglyceridesMgDl,
-        fastingGlucoseMgDl: parsed.fastingGlucoseMgDl,
-        hba1cPercent: parsed.hba1cPercent,
+        ...encryptedFields,
         isDiabetic: parsed.isDiabetic,
-        systolicBp: parsed.systolicBp,
-        diastolicBp: parsed.diastolicBp,
         activityLevel: parsed.activityLevel,
         dietStyle: parsed.dietStyle,
         dietaryRestrictions: parsed.dietaryRestrictions,
-        allergies: parsed.allergies,
-        medicalConditions: parsed.medicalConditions,
-        medications: parsed.medications,
         includeAyurvedic: parsed.includeAyurvedic,
         includeAntiInflammatory: parsed.includeAntiInflammatory,
         bmr,
@@ -617,20 +634,11 @@ router.put("/health-profile", async (req, res, next) => {
         weightKg: parsed.weightKg,
         targetWeightKg,
         bmi,
-        ldlMgDl: parsed.ldlMgDl,
-        hdlMgDl: parsed.hdlMgDl,
-        triglyceridesMgDl: parsed.triglyceridesMgDl,
-        fastingGlucoseMgDl: parsed.fastingGlucoseMgDl,
-        hba1cPercent: parsed.hba1cPercent,
+        ...encryptedFields,
         isDiabetic: parsed.isDiabetic,
-        systolicBp: parsed.systolicBp,
-        diastolicBp: parsed.diastolicBp,
         activityLevel: parsed.activityLevel,
         dietStyle: parsed.dietStyle,
         dietaryRestrictions: parsed.dietaryRestrictions,
-        allergies: parsed.allergies,
-        medicalConditions: parsed.medicalConditions,
-        medications: parsed.medications,
         includeAyurvedic: parsed.includeAyurvedic,
         includeAntiInflammatory: parsed.includeAntiInflammatory,
         bmr,
@@ -653,7 +661,7 @@ router.put("/health-profile", async (req, res, next) => {
       patientId: req.user.id,
     });
 
-    res.status(200).json({ healthProfile });
+    res.status(200).json({ healthProfile: decryptHealthProfileFields(healthProfile) });
   } catch (error) {
     next(error);
   }

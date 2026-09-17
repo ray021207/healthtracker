@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { api } from "../lib/api";
-import { useAuth } from "../lib/auth";
+import { markDemoCredentialsChanged, useAuth } from "../lib/auth";
 import { Alert, Avatar, Badge, Button, Card, TextInput } from "../components/ui";
 
 export function SettingsPage() {
@@ -39,6 +39,7 @@ export function SettingsPage() {
     setSaving(true);
     try {
       const res = await api.changePassword(form.currentPassword, form.newPassword);
+      markDemoCredentialsChanged();
       setStatus(res.message + " Signing out…");
       setTimeout(async () => {
         await logout();

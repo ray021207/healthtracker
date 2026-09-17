@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Leaf, Check } from "lucide-react";
 
 import { useAuth } from "../lib/auth";
 import { Alert, Button } from "../components/ui";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("patient@monarkhealth.com");
-  const [password, setPassword] = useState("Patient@12345");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +43,7 @@ export default function LoginPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #F0EDF9, #F9F8FC)",
+        background: "var(--gradient-auth)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -154,8 +154,11 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Sign In"}
             </Button>
           </form>
-          <p className="text-xs text-muted" style={{ textAlign: "center", marginTop: 18 }}>
-            Demo credentials pre-filled above
+          <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", marginTop: 20 }}>
+            By signing in you agree to the{" "}
+            <Link to="/terms" style={{ color: "var(--color-text-secondary)" }}>Terms of Service</Link>{" "}
+            and{" "}
+            <Link to="/privacy" style={{ color: "var(--color-text-secondary)" }}>Privacy Policy</Link>.
           </p>
         </div>
       </div>

@@ -93,7 +93,13 @@ export function Badge({
 /* ====================================================================
    Avatar — initials with a deterministic lavender tone from the name
    ==================================================================== */
-const AVATAR_TONES = ["#EDE9F6", "#E5DDF1", "#DCD0EC", "#D2C3E6", "#E8E2F3"];
+const AVATAR_TONES = [
+  "var(--color-avatar-1)",
+  "var(--color-avatar-2)",
+  "var(--color-avatar-3)",
+  "var(--color-avatar-4)",
+  "var(--color-avatar-5)",
+];
 
 function hashName(name: string): number {
   let h = 0;
@@ -260,8 +266,8 @@ export function Alert({
   const map = {
     success: { bg: "var(--color-success-subtle)", color: "var(--color-success)" },
     error: { bg: "var(--color-error-subtle)", color: "var(--color-error)" },
-    info: { bg: "var(--color-info-subtle)", color: "#3f7bb5" },
-    warning: { bg: "var(--color-warning-subtle)", color: "#b07d1e" },
+    info: { bg: "var(--color-info-subtle)", color: "var(--color-info-text)" },
+    warning: { bg: "var(--color-warning-subtle)", color: "var(--color-warning-text)" },
   }[variant];
   return (
     <div

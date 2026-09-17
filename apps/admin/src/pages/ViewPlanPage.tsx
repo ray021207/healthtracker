@@ -27,6 +27,7 @@ interface Exercise { name?: string; sets?: number; reps?: number; durationMinute
 interface ExerciseDay { day: number; phase?: string; isRestDay?: boolean; totalDurationMinutes?: number; totalCaloriesBurned?: number; dayNote?: string; exercises?: Exercise[] }
 interface AyurvedicRec { name?: string; category?: string; suggestion?: string; benefits?: string; disclaimer?: string }
 
+const MEAL_ORDER = ["breakfast", "morningSnack", "lunch", "afternoonSnack", "dinner"] as const;
 const MEAL_LABELS: Record<string, string> = {
   breakfast: "Breakfast",
   morningSnack: "Morning Snack",
@@ -34,6 +35,16 @@ const MEAL_LABELS: Record<string, string> = {
   afternoonSnack: "Afternoon Snack",
   dinner: "Dinner",
 };
+
+function orderedMealEntries(meals: Record<string, Meal> | undefined): Array<[string, Meal]> {
+  if (!meals) return [];
+  const entries = Object.entries(meals);
+  return entries.sort(([a], [b]) => {
+    const ai = MEAL_ORDER.indexOf(a as (typeof MEAL_ORDER)[number]);
+    const bi = MEAL_ORDER.indexOf(b as (typeof MEAL_ORDER)[number]);
+    return (ai === -1 ? MEAL_ORDER.length : ai) - (bi === -1 ? MEAL_ORDER.length : bi);
+  });
+}
 const MEAL_ICONS: Record<string, React.ReactNode> = {
   breakfast: <Sunrise size={16} strokeWidth={1.5} />,
   morningSnack: <Apple size={16} strokeWidth={1.5} />,
@@ -134,7 +145,7 @@ function DietTab({ days }: { days: DietDay[] }) {
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 10 }}>
-            {Object.entries(d.meals ?? {}).map(([key, meal]) => (
+            {orderedMealEntries(d.meals).map(([key, meal]) => (
               <div key={key} style={{ background: "var(--color-bg)", borderRadius: "var(--radius-md)", padding: "12px 14px", border: "1px solid var(--color-border)" }}>
                 <div className="flex items-center gap-2 mb-2" style={{ color: "var(--color-primary)" }}>
                   {MEAL_ICONS[key] ?? <Utensils size={16} strokeWidth={1.5} />}

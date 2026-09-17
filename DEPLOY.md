@@ -22,7 +22,10 @@ continuing.
 ## 2. Neon (database)
 
 1. [neon.tech](https://neon.tech) → sign up free → **New Project**.
-2. Pick a region close to where you'll put Render (e.g. Oregon, to match Render's free-tier default).
+2. Pick region **Oregon (US West)** — `render.yaml` now pins the Render service to Oregon too
+   (`region: oregon`), so this keeps the DB and API physically close. (Render's other free-tier
+   options are Ohio, Frankfurt, and Singapore — if you'd rather use one of those, change `region:` in
+   `render.yaml` to match before deploying.)
 3. Copy the connection string Neon gives you (the direct one, not the pooled `-pooler` variant — a
    single Render service doesn't need PgBouncer). It looks like:
    `postgresql://user:pass@ep-xxxx.us-west-2.aws.neon.tech/neondb?sslmode=require`
@@ -46,7 +49,12 @@ same values by hand.
    - `DATABASE_URL` — the Neon string from step 2
    - `ANTHROPIC_API_KEY` — your Claude API key
    - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` — any long random strings (`openssl rand -hex 32`)
-   - `ENCRYPTION_KEY` — 32-byte hex (`openssl rand -hex 32`)
+   - `ENCRYPTION_KEY` — ⚠️ **do not generate a new one.** Sensitive health-profile fields (labs,
+     medications, conditions, allergies) are encrypted at rest with this exact key. Copy the value
+     already in your local `packages/api/.env` and paste it here verbatim. If Render ends up with a
+     *different* key than the one the data was encrypted with, every existing health profile becomes
+     permanently undecryptable — there is no recovery. (Only generate a fresh key with
+     `openssl rand -hex 32` the first time you ever set this up, before any data exists.)
    - `CORS_ORIGINS` — leave a placeholder for now (e.g. `https://placeholder.vercel.app`), fill in
      for real after step 4. Browser calls go through the Vercel rewrite so this mostly matters as a
      fallback, but set it anyway.
@@ -62,7 +70,10 @@ Do this twice, once per app — same GitHub repo, different project root.
 
 1. [vercel.com](https://vercel.com) → sign up free → **Add New → Project** → import `healthtracker`.
 2. **Root Directory**: `apps/admin` (repeat later with `apps/patient-web`). Vercel auto-detects Vite.
-3. No env vars needed — the `vercel.json` rewrite in each app handles the API connection.
+3. No env vars needed for the API connection — the `vercel.json` rewrite in each app handles that.
+   For `apps/admin` specifically, also set `VITE_PATIENT_PORTAL_URL` to the patient-web Vercel URL
+   (from step 6 below) once you have it — it's printed on the patient welcome card. Redeploy admin
+   after setting it.
 4. Deploy. Note the URL Vercel gives you (e.g. `https://monark-admin.vercel.app`).
 5. **Before or right after deploying**, open `apps/admin/vercel.json` and `apps/patient-web/vercel.json`
    and replace `https://monark-api.onrender.com` with the actual Render URL from step 3.3 if it

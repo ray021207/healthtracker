@@ -1,21 +1,26 @@
 import type { ActivityLevel, DietStyle } from "@prisma/client";
+import { kgToLb, lbToKg } from "./units.js";
 
-export function calculateBMI(weightKg: number, heightCm: number): number {
+// Weight is persisted in lb (US units); height is persisted in cm (metric).
+export function calculateBMI(weightLb: number, heightCm: number): number {
+  const weightKg = lbToKg(weightLb);
   const heightM = heightCm / 100;
   return weightKg / (heightM * heightM);
 }
 
 export function calculateTargetWeight(heightCm: number): number {
   const heightM = heightCm / 100;
-  return 24.9 * (heightM * heightM);
+  const targetKg = 24.9 * (heightM * heightM);
+  return kgToLb(targetKg);
 }
 
 export function calculateBMR(
-  weightKg: number,
+  weightLb: number,
   heightCm: number,
   ageYears: number,
   gender: "MALE" | "FEMALE",
 ): number {
+  const weightKg = lbToKg(weightLb);
   const base = 10 * weightKg + 6.25 * heightCm - 5 * ageYears;
   return gender === "MALE" ? base + 5 : base - 161;
 }

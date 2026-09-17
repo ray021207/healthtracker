@@ -43,6 +43,10 @@ export interface AuditLog {
   userAgent: string;
 }
 
+interface MutateCountResponse {
+  deletedCount: number;
+}
+
 export const api = {
   login: (email: string, password: string) =>
     request<{ user: LoginUser }>("/api/auth/login", {
@@ -69,6 +73,18 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(payload),
     }),
+  archivePatient: (id: string) =>
+    request<{ patient: { id: string; isActive: boolean } }>(`/api/admin/patients/${id}/archive`, {
+      method: "POST",
+    }),
+  unarchivePatient: (id: string) =>
+    request<{ patient: { id: string; isActive: boolean } }>(`/api/admin/patients/${id}/unarchive`, {
+      method: "POST",
+    }),
+  deletePatient: (id: string) =>
+    request<{ message: string }>(`/api/admin/patients/${id}`, {
+      method: "DELETE",
+    }),
   getHealthProfile: (id: string) =>
     request<{ healthProfile: Record<string, unknown> | null }>(`/api/admin/patients/${id}/health-profile`),
   upsertHealthProfile: (id: string, payload: Record<string, unknown>) =>
@@ -91,4 +107,13 @@ export const api = {
     const qs = q.toString();
     return request<{ logs: AuditLog[] }>(`/api/admin/audit-logs${qs ? `?${qs}` : ""}`);
   },
+  archiveAuditLogs: (olderThanDays = 90) =>
+    request<MutateCountResponse>("/api/admin/audit-logs/archive", {
+      method: "POST",
+      body: JSON.stringify({ olderThanDays }),
+    }),
+  clearAuditLogs: () =>
+    request<MutateCountResponse>("/api/admin/audit-logs", {
+      method: "DELETE",
+    }),
 };

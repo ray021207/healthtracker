@@ -9,7 +9,7 @@ import { Alert, Button, Card, TextInput } from "../components/ui";
 // Lifestyle defaults are preserved from existing profile; admin only edits clinical data
 const clinicalDefaults = {
   heightCm: 170,
-  weightKg: 75,
+  weightKg: 165,
   targetWeightKg: undefined as number | undefined,
   ldlMgDl: undefined as number | undefined,
   hdlMgDl: undefined as number | undefined,
@@ -146,11 +146,35 @@ export function EditHealthProfilePage() {
           <Card>
             <Section title="Body Measurements">
               <div className="grid-2">
-                <TextInput label="Height (cm)" type="number" value={payload.heightCm} min={100} max={250} onChange={(e) => set("heightCm", Number(e.target.value))} />
-                <TextInput label="Current Weight (kg)" type="number" value={payload.weightKg} min={20} max={300} step="0.1" onChange={(e) => set("weightKg", Number(e.target.value))} />
+                <TextInput
+                  label="Height (cm)"
+                  type="number"
+                  value={payload.heightCm}
+                  min={100}
+                  max={250}
+                  onChange={(e) => set("heightCm", Number(e.target.value))}
+                />
+                <TextInput
+                  label="Current Weight (lb)"
+                  type="number"
+                  value={payload.weightKg}
+                  min={70}
+                  max={500}
+                  step="0.1"
+                  onChange={(e) => set("weightKg", Number(e.target.value))}
+                />
               </div>
               <div style={{ marginTop: 16 }}>
-                <TextInput label="Target Weight (kg) — optional" type="number" value={payload.targetWeightKg ?? ""} min={20} max={300} step="0.1" placeholder="e.g. 68" onChange={(e) => set("targetWeightKg", numOrUndefined(e.target.value))} />
+                <TextInput
+                  label="Target Weight (lb) — optional"
+                  type="number"
+                  value={payload.targetWeightKg ?? ""}
+                  min={70}
+                  max={500}
+                  step="0.1"
+                  placeholder="e.g. 150"
+                  onChange={(e) => set("targetWeightKg", numOrUndefined(e.target.value))}
+                />
               </div>
             </Section>
 

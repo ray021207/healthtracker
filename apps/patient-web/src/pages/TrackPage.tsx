@@ -15,6 +15,13 @@ const MEAL_ICONS: Record<string, React.ReactNode> = {
 };
 const MEAL_LABELS: Record<string, string> = { breakfast: "Breakfast", morningSnack: "Morning Snack", lunch: "Lunch", afternoonSnack: "Afternoon Snack", dinner: "Dinner" };
 type MealKey = (typeof MEAL_KEYS)[number];
+const OZ_PER_LITRE = 33.814;
+
+function toStoredWaterOz(value: number): number {
+  // Backward compatibility for older logs that stored litres.
+  if (value <= 10) return value * OZ_PER_LITRE;
+  return value;
+}
 
 function CheckItem({ icon, label, sub, checked, onToggle }: { icon: React.ReactNode; label: string; sub?: string; checked: boolean; onToggle: () => void }) {
   return (
@@ -110,7 +117,7 @@ export default function TrackPage() {
   const [meals, setMeals] = useState<Record<MealKey, boolean>>({ breakfast: false, morningSnack: false, lunch: false, afternoonSnack: false, dinner: false });
   const [exerciseDone, setExerciseDone] = useState(false);
   const [exerciseDuration, setExerciseDuration] = useState("");
-  const [water, setWater] = useState("2.5");
+  const [water, setWater] = useState("84");
   const [weightKg, setWeightKg] = useState("");
   const [energyLevel, setEnergyLevel] = useState(0);
   const [mood, setMood] = useState(0);
@@ -132,7 +139,7 @@ export default function TrackPage() {
         setMeals({ breakfast: !!log.breakfastDone, morningSnack: !!log.snack1Done, lunch: !!log.lunchDone, afternoonSnack: !!log.snack2Done, dinner: !!log.dinnerDone });
         setExerciseDone(!!log.exerciseDone);
         if (log.exerciseDuration) setExerciseDuration(String(log.exerciseDuration));
-        if (log.waterLitres) setWater(String(log.waterLitres));
+        if (log.waterLitres) setWater(String(Math.round(toStoredWaterOz(Number(log.waterLitres)))));
         if (log.weightKg) setWeightKg(String(log.weightKg));
         if (log.energyLevel) setEnergyLevel(log.energyLevel as number);
         if (log.mood) setMood(log.mood as number);
@@ -240,13 +247,13 @@ export default function TrackPage() {
             type="number"
             value={water}
             onChange={(e) => setWater(e.target.value)}
-            step="0.5"
+            step="1"
             style={{ flex: 1, border: "none", padding: 0, fontSize: 26, fontWeight: 600, color: "var(--color-text-primary)" }}
           />
-          <span className="text-sm text-secondary font-medium">litres</span>
+          <span className="text-sm text-secondary font-medium">fl oz</span>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {["1", "1.5", "2", "2.5", "3", "3.5"].map((v) => (
+          {["34", "51", "68", "84", "101", "118"].map((v) => (
             <button
               key={v}
               onClick={() => setWater(v)}
@@ -262,7 +269,7 @@ export default function TrackPage() {
                 cursor: "pointer",
               }}
             >
-              {v}L
+              {v} oz
             </button>
           ))}
         </div>
@@ -272,8 +279,8 @@ export default function TrackPage() {
       <div className="section-label">Biometrics</div>
       <div className="card mb-4" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--color-border)" }}>
-          <label htmlFor="weight">Weight (kg)</label>
-          <input id="weight" type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="e.g. 72.5" step="0.1" />
+          <label htmlFor="weight">Weight (lb)</label>
+          <input id="weight" type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="e.g. 160" step="0.1" />
         </div>
         <RatingRow label="Energy Level" value={energyLevel} onChange={setEnergyLevel} />
         <RatingRow label="Mood" value={mood} onChange={setMood} />

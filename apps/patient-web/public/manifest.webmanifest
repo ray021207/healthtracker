@@ -1,0 +1,16 @@
+{
+  "name": "Monark Health",
+  "short_name": "Monark",
+  "description": "Track your 90-day wellness plan — meals, workouts, water, and progress.",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F9F8FC",
+  "theme_color": "#4F4A85",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/maskable-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

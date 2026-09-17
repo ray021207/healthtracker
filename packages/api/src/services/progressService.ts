@@ -1,10 +1,11 @@
 import { prisma } from "../lib/prisma.js";
+import { normalizeWeightToLb } from "../utils/unitNormalization.js";
 
 interface ProgressStats {
   totalLoggedDays: number;
   adherencePercent: number;
   currentStreakDays: number;
-  weightTrend: Array<{ date: string; weightKg: number }>;
+  weightTrend: Array<{ date: string; weightLb: number }>;
 }
 
 function calculateCurrentStreak(logDates: Date[]): number {
@@ -77,7 +78,7 @@ export async function getPatientProgressStats(patientId: string): Promise<Progre
     .filter((log) => typeof log.weightKg === "number")
     .map((log) => ({
       date: log.logDate.toISOString().slice(0, 10),
-      weightKg: Number(log.weightKg),
+      weightLb: normalizeWeightToLb(Number(log.weightKg)),
     }));
 
   const currentStreakDays = calculateCurrentStreak(logs.map((log) => log.logDate));

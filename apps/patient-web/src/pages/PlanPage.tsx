@@ -15,6 +15,16 @@ const MEAL_ICONS: Record<string, React.ReactNode> = {
   dinner: <Moon size={18} strokeWidth={1.5} />,
 };
 const MEAL_LABELS: Record<string, string> = { breakfast: "Breakfast", morningSnack: "Morning Snack", lunch: "Lunch", afternoonSnack: "Afternoon Snack", dinner: "Dinner" };
+const MEAL_ORDER = ["breakfast", "morningSnack", "lunch", "afternoonSnack", "dinner"] as const;
+
+function orderedMealEntries<T>(meals: Record<string, T> | undefined): Array<[string, T]> {
+  if (!meals) return [];
+  return Object.entries(meals).sort(([a], [b]) => {
+    const ai = MEAL_ORDER.indexOf(a as (typeof MEAL_ORDER)[number]);
+    const bi = MEAL_ORDER.indexOf(b as (typeof MEAL_ORDER)[number]);
+    return (ai === -1 ? MEAL_ORDER.length : ai) - (bi === -1 ? MEAL_ORDER.length : bi);
+  });
+}
 
 function GiBadge({ gi }: { gi?: number }) {
   if (gi == null) return null;
@@ -124,7 +134,7 @@ function DietView({ day }: { day: DietDay }) {
       </Card>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {Object.entries(day.meals ?? {}).filter(([, m]) => m?.name).map(([key, meal]) => (
+        {orderedMealEntries(day.meals).filter(([, m]) => m?.name).map(([key, meal]) => (
           <Card key={key}>
             <div className="flex items-center gap-2 mb-2">
               <span style={{ color: "var(--color-primary)" }}>{MEAL_ICONS[key] ?? <Utensils size={18} strokeWidth={1.5} />}</span>
@@ -211,29 +221,29 @@ function printFullPlan(dietPlan: DietDay[], exercisePlan: ExerciseDay[], ayurved
     const meals = mealOrder.map((k) => {
       const m = (d.meals as Record<string, { name?: string; calories?: number; giIndex?: number; description?: string }> | undefined)?.[k];
       if (!m?.name) return "";
-      return `<tr><td style="padding:4px 8px;font-size:12px;color:#6B6580">${mealLabel[k]}</td><td style="padding:4px 8px;font-size:12px;font-weight:600">${m.name}</td><td style="padding:4px 8px;font-size:12px;color:#b07d1e;text-align:right">${m.calories ?? ""}kcal</td><td style="padding:4px 8px;font-size:11px;color:#7C6FA0;text-align:right">${m.giIndex != null ? `GI ${m.giIndex}` : ""}</td></tr>`;
+      return `<tr><td style="padding:4px 8px;font-size:12px;color:#6B6580">${mealLabel[k]}</td><td style="padding:4px 8px;font-size:12px;font-weight:600">${m.name}</td><td style="padding:4px 8px;font-size:12px;color:#b07d1e;text-align:right">${m.calories ?? ""}kcal</td><td style="padding:4px 8px;font-size:11px;color:#4F4A85;text-align:right">${m.giIndex != null ? `GI ${m.giIndex}` : ""}</td></tr>`;
     }).join("");
     return `<div style="page-break-inside:avoid;margin-bottom:12px;border:1px solid #E4E0EF;border-radius:8px;overflow:hidden">
-      <div style="background:#EDE9F6;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-weight:600;font-size:13px;color:#5A4F78">Day ${d.day}</span>
+      <div style="background:#E8E6F5;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;font-size:13px;color:#37325E">Day ${d.day}</span>
         <span style="font-size:12px;color:#6B6580">${d.totalCalories ?? ""}kcal · P${d.totalProteinG ?? "—"}g C${d.totalCarbsG ?? "—"}g F${d.totalFatG ?? "—"}g · ${d.hydrationLitres ?? 2.5}L</span>
       </div>
       <table style="width:100%;border-collapse:collapse">${meals}</table>
-      ${d.dailyNote ? `<div style="padding:6px 12px;font-size:11px;color:#5A4F78;font-style:italic;background:#F9F8FC">${d.dailyNote}</div>` : ""}
+      ${d.dailyNote ? `<div style="padding:6px 12px;font-size:11px;color:#37325E;font-style:italic;background:#F9F8FC">${d.dailyNote}</div>` : ""}
     </div>`;
   }).join("");
   const exHTML = exercisePlan.map((d) => {
-    if (d.isRestDay) return `<div style="page-break-inside:avoid;margin-bottom:8px;border:1px solid #E4E0EF;border-radius:8px;padding:8px 12px;display:flex;gap:12px;align-items:center"><span style="font-weight:600;font-size:13px;color:#5A4F78;min-width:52px">Day ${d.day}</span><span style="font-size:12px;color:#6B6580">Rest Day</span></div>`;
-    const exRows = (d.exercises ?? []).map((ex) => `<span style="display:inline-block;margin:2px 4px 2px 0;background:#EDE9F6;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:500;color:#5A4F78">${ex.name}${ex.sets && ex.reps ? ` ${ex.sets}×${ex.reps}` : ex.durationMinutes ? ` ${ex.durationMinutes}min` : ""}</span>`).join("");
-    return `<div style="page-break-inside:avoid;margin-bottom:8px;border:1px solid #E4E0EF;border-radius:8px;padding:8px 12px"><div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><span style="font-weight:600;font-size:13px;color:#5A4F78;min-width:52px">Day ${d.day}</span><span style="font-size:11px;background:#EDE9F6;color:#5A4F78;border-radius:5px;padding:2px 8px;font-weight:600;text-transform:capitalize">${d.phase ?? ""}</span><span style="font-size:12px;color:#6B6580;margin-left:auto">${d.totalDurationMinutes ?? "—"}min · ${d.totalCaloriesBurned ?? "—"}kcal</span></div><div>${exRows}</div></div>`;
+    if (d.isRestDay) return `<div style="page-break-inside:avoid;margin-bottom:8px;border:1px solid #E4E0EF;border-radius:8px;padding:8px 12px;display:flex;gap:12px;align-items:center"><span style="font-weight:600;font-size:13px;color:#37325E;min-width:52px">Day ${d.day}</span><span style="font-size:12px;color:#6B6580">Rest Day</span></div>`;
+    const exRows = (d.exercises ?? []).map((ex) => `<span style="display:inline-block;margin:2px 4px 2px 0;background:#E8E6F5;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:500;color:#37325E">${ex.name}${ex.sets && ex.reps ? ` ${ex.sets}×${ex.reps}` : ex.durationMinutes ? ` ${ex.durationMinutes}min` : ""}</span>`).join("");
+    return `<div style="page-break-inside:avoid;margin-bottom:8px;border:1px solid #E4E0EF;border-radius:8px;padding:8px 12px"><div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><span style="font-weight:600;font-size:13px;color:#37325E;min-width:52px">Day ${d.day}</span><span style="font-size:11px;background:#E8E6F5;color:#37325E;border-radius:5px;padding:2px 8px;font-weight:600;text-transform:capitalize">${d.phase ?? ""}</span><span style="font-size:12px;color:#6B6580;margin-left:auto">${d.totalDurationMinutes ?? "—"}min · ${d.totalCaloriesBurned ?? "—"}kcal</span></div><div>${exRows}</div></div>`;
   }).join("");
-  const ayurHTML = ayurvedicNotes.length > 0 ? ayurvedicNotes.map((r) => `<div style="border:1px solid #E4E0EF;border-left:3px solid #7C6FA0;border-radius:8px;padding:12px 16px;margin-bottom:10px"><div style="font-weight:600;color:#5A4F78;margin-bottom:4px">${r.name}</div>${r.suggestion ? `<div style="font-size:13px;color:#1E1A2E;margin-bottom:4px">${r.suggestion}</div>` : ""}${r.benefits ? `<div style="font-size:12px;color:#6B6580">${r.benefits}</div>` : ""}</div>`).join("") : "";
+  const ayurHTML = ayurvedicNotes.length > 0 ? ayurvedicNotes.map((r) => `<div style="border:1px solid #E4E0EF;border-left:3px solid #4F4A85;border-radius:8px;padding:12px 16px;margin-bottom:10px"><div style="font-weight:600;color:#37325E;margin-bottom:4px">${r.name}</div>${r.suggestion ? `<div style="font-size:13px;color:#1E1A2E;margin-bottom:4px">${r.suggestion}</div>` : ""}${r.benefits ? `<div style="font-size:12px;color:#6B6580">${r.benefits}</div>` : ""}</div>`).join("") : "";
 
   win.document.write(`<!doctype html><html><head><title>My 90-Day Wellness Plan</title>
 <style>
   body { font-family: Inter, Arial, sans-serif; color: #1E1A2E; padding: 32px; background: #fff; }
-  h1 { font-size: 22px; font-weight: 600; color: #5A4F78; margin-bottom: 4px; }
-  h2 { font-size: 16px; font-weight: 600; color: #1E1A2E; margin: 28px 0 12px; border-bottom: 1px solid #EDE9F6; padding-bottom: 8px; }
+  h1 { font-size: 22px; font-weight: 600; color: #37325E; margin-bottom: 4px; }
+  h2 { font-size: 16px; font-weight: 600; color: #1E1A2E; margin: 28px 0 12px; border-bottom: 1px solid #E8E6F5; padding-bottom: 8px; }
   .meta { font-size: 13px; color: #6B6580; margin-bottom: 28px; }
   @media print { body { padding: 16px; } }
 </style></head><body>

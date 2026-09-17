@@ -1,9 +1,9 @@
 :root {
   /* Brand */
-  --color-primary:        #7C6FA0;
-  --color-primary-light:  #A99BC8;
-  --color-primary-subtle: #EDE9F6;
-  --color-primary-dark:   #5A4F78;
+  --color-primary:        #4F4A85;
+  --color-primary-light:  #7A72B3;
+  --color-primary-subtle: #E8E6F5;
+  --color-primary-dark:   #37325E;
 
   /* Neutrals */
   --color-bg:             #F9F8FC;
@@ -24,6 +24,26 @@
   --color-error-subtle:   #FAE8E8;
   --color-info-subtle:    #E6F0FA;
 
+  /* Semantic text-on-subtle (higher-contrast than the base semantic color) */
+  --color-info-text:    #3F7BB5;
+  --color-warning-text: #B07D1E;
+
+  /* Avatar tone swatches */
+  --color-avatar-1: #EDE9F6;
+  --color-avatar-2: #E5DDF1;
+  --color-avatar-3: #DCD0EC;
+  --color-avatar-4: #D2C3E6;
+  --color-avatar-5: #E8E2F3;
+
+  /* Auth/marketing gradient */
+  --gradient-auth: linear-gradient(135deg, #F0EDF9, #F9F8FC);
+
+  /* Skeleton shimmer highlight */
+  --color-shimmer: #F4F1FA;
+
+  /* Focus ring */
+  --color-focus-ring: rgba(79, 74, 133, 0.15);
+
   /* Elevation */
   --shadow-sm:  0 1px 3px rgba(124, 111, 160, 0.08);
   --shadow-md:  0 4px 12px rgba(124, 111, 160, 0.12);
@@ -37,6 +57,49 @@
 
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --transition: all 0.18s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary:        #9891CC;
+    --color-primary-light:  #B7B0DE;
+    --color-primary-subtle: #2E2A47;
+    --color-primary-dark:   #D6D2F0;
+
+    --color-bg:             #16141F;
+    --color-surface:        #201D2E;
+    --color-border:         #363150;
+    --color-text-primary:   #EDEBF5;
+    --color-text-secondary: #A9A3C0;
+    --color-text-muted:     #726C8A;
+
+    --color-success: #6FCB9F;
+    --color-warning: #F0BE5C;
+    --color-error:   #E88585;
+    --color-info:    #7FB4E0;
+
+    --color-success-subtle: #1E3A2E;
+    --color-warning-subtle: #3D3220;
+    --color-error-subtle:   #3D2323;
+    --color-info-subtle:    #1F3247;
+
+    --color-info-text:    #8FC5EE;
+    --color-warning-text: #F0BE5C;
+
+    --color-avatar-1: #2E2A47;
+    --color-avatar-2: #332C48;
+    --color-avatar-3: #382F4C;
+    --color-avatar-4: #3D3252;
+    --color-avatar-5: #332E4A;
+
+    --gradient-auth: linear-gradient(135deg, #1C1930, #16141F);
+    --color-shimmer: #3A3555;
+    --color-focus-ring: rgba(152, 145, 204, 0.25);
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -183,9 +246,9 @@ h3 { font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
 }
 .badge-primary { background: var(--color-primary-subtle); color: var(--color-primary-dark); }
 .badge-success { background: var(--color-success-subtle); color: var(--color-success); }
-.badge-warning { background: var(--color-warning-subtle); color: #b07d1e; }
+.badge-warning { background: var(--color-warning-subtle); color: var(--color-warning-text); }
 .badge-error   { background: var(--color-error-subtle);   color: var(--color-error); }
-.badge-info    { background: var(--color-info-subtle);    color: #3f7bb5; }
+.badge-info    { background: var(--color-info-subtle);    color: var(--color-info-text); }
 .badge-neutral { background: var(--color-bg); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
 
 /* Forms */
@@ -212,7 +275,7 @@ input, select, textarea {
 textarea { min-height: 96px; padding: 12px 14px; resize: vertical; line-height: 1.6; }
 input:focus, select:focus, textarea:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(124, 111, 160, 0.15);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 input.invalid, textarea.invalid { border-color: var(--color-error); }
 input[type="checkbox"] { width: auto; min-height: 0; accent-color: var(--color-primary); }
@@ -256,12 +319,12 @@ input[type="checkbox"] { width: auto; min-height: 0; accent-color: var(--color-p
 .alert { border-radius: var(--radius-md); padding: 12px 14px; font-size: 13px; font-weight: 500; }
 .alert-success { background: var(--color-success-subtle); color: var(--color-success); }
 .alert-error { background: var(--color-error-subtle); color: var(--color-error); }
-.alert-info { background: var(--color-info-subtle); color: #3f7bb5; }
+.alert-info { background: var(--color-info-subtle); color: var(--color-info-text); }
 
 /* Spinner + skeleton */
 .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.skeleton { background: linear-gradient(90deg, var(--color-primary-subtle) 25%, #f4f1fa 50%, var(--color-primary-subtle) 75%); background-size: 200% 100%; border-radius: var(--radius-md); animation: shimmer 1.4s ease infinite; }
+.skeleton { background: linear-gradient(90deg, var(--color-primary-subtle) 25%, var(--color-shimmer) 50%, var(--color-primary-subtle) 75%); background-size: 200% 100%; border-radius: var(--radius-md); animation: shimmer 1.4s ease infinite; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
 /* Animations + utilities */

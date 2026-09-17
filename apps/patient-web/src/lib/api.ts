@@ -1,8 +1,80 @@
+const STORAGE_KEY = "monark_patient_auth";
+
+type StoredAuth = {
+  user?: unknown;
+  accessToken?: string;
+  refreshToken?: string | null;
+};
+
+function readStoredAuth(): StoredAuth | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as StoredAuth) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredAuth(next: StoredAuth): void {
+  try {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // no-op: failing storage should not crash API calls
+  }
+}
+
+async function refreshPatientAccessToken(refreshToken: string): Promise<string | null> {
+  const res = await fetch("/api/auth/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-client-type": "mobile" },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  const json = (await res.json().catch(() => ({}))) as {
+    accessToken?: string;
+    refreshToken?: string;
+    user?: unknown;
+  };
+
+  if (!res.ok || !json.accessToken) {
+    return null;
+  }
+
+  const stored = readStoredAuth();
+  writeStoredAuth({
+    user: json.user ?? stored?.user,
+    accessToken: json.accessToken,
+    refreshToken: json.refreshToken ?? stored?.refreshToken ?? null,
+  });
+
+  return json.accessToken;
+}
+
 async function req<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  const res = await fetch(path, { ...options, headers: { ...headers, ...(options.headers as Record<string, string> ?? {}) } });
-  const json = await res.json().catch(() => ({}));
+  const buildHeaders = (authToken?: string): Record<string, string> => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+    return { ...headers, ...((options.headers as Record<string, string>) ?? {}) };
+  };
+
+  let activeToken = token;
+  let res = await fetch(path, { ...options, headers: buildHeaders(activeToken) });
+  let json = await res.json().catch(() => ({}));
+
+  if (res.status === 401) {
+    const stored = readStoredAuth();
+    if (stored?.refreshToken) {
+      const refreshed = await refreshPatientAccessToken(stored.refreshToken);
+      if (refreshed) {
+        activeToken = refreshed;
+        res = await fetch(path, { ...options, headers: buildHeaders(activeToken) });
+        json = await res.json().catch(() => ({}));
+      }
+    }
+  }
+
   if (!res.ok) throw new Error((json as { message?: string }).message || `Request failed (${res.status})`);
   return json as T;
 }

@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ScrollText } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Archive, ScrollText, Trash2 } from "lucide-react";
 
 import { api, type AuditLog } from "../lib/api";
-import { Badge, Card, EmptyState, SelectInput, Skeleton } from "../components/ui";
+import { Alert, Badge, Button, Card, EmptyState, SelectInput, Skeleton } from "../components/ui";
 
 type BadgeVariant = "primary" | "success" | "warning" | "error" | "info" | "neutral";
 
@@ -19,11 +19,36 @@ function actionVariant(action: string): BadgeVariant {
 }
 
 export function AuditLogsPage() {
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["audit-logs"],
     queryFn: () => api.getAuditLogs({ limit: 100 }),
   });
   const [actionFilter, setActionFilter] = useState("");
+  const [archiveDays, setArchiveDays] = useState<"30" | "90">("90");
+  const [status, setStatus] = useState<{ text: string; variant: "success" | "error" | "info" } | null>(null);
+
+  const archiveMutation = useMutation({
+    mutationFn: () => api.archiveAuditLogs(Number(archiveDays)),
+    onSuccess: (result) => {
+      setStatus({ text: `Archived ${result.deletedCount} old logs (older than ${archiveDays} days).`, variant: "success" });
+      void queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
+    },
+    onError: (error) => {
+      setStatus({ text: error instanceof Error ? error.message : "Archive failed", variant: "error" });
+    },
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: () => api.clearAuditLogs(),
+    onSuccess: (result) => {
+      setStatus({ text: `Cleared ${result.deletedCount} audit logs.`, variant: "success" });
+      void queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
+    },
+    onError: (error) => {
+      setStatus({ text: error instanceof Error ? error.message : "Clear failed", variant: "error" });
+    },
+  });
 
   const logs = data?.logs ?? [];
   const actions = useMemo(() => Array.from(new Set(logs.map((l) => l.action))).sort(), [logs]);
@@ -33,15 +58,50 @@ export function AuditLogsPage() {
     <div className="page-enter">
       <div className="page-toolbar">
         <p className="subtitle">Full activity trail for your clinic — every action, every actor</p>
-        <div style={{ minWidth: 220 }}>
+        <div className="flex items-center gap-2" style={{ minWidth: 220 }}>
           <SelectInput value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
             <option value="">All actions</option>
             {actions.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
           </SelectInput>
+          <Button
+            variant="secondary"
+            loading={archiveMutation.isPending}
+            onClick={() => {
+              const ok = window.confirm(`Archive logs older than ${archiveDays} days? This removes them from the active audit list.`);
+              if (!ok) return;
+              archiveMutation.mutate();
+            }}
+          >
+            <Archive size={15} strokeWidth={1.5} /> Archive
+          </Button>
+          <SelectInput value={archiveDays} onChange={(e) => setArchiveDays(e.target.value as "30" | "90") }>
+            <option value="30">Older than 30 days</option>
+            <option value="90">Older than 90 days</option>
+          </SelectInput>
+          <Button
+            variant="destructive"
+            loading={clearMutation.isPending}
+            onClick={() => {
+              const ok = window.confirm("Clear all audit logs for this clinic? This cannot be undone.");
+              if (!ok) return;
+              clearMutation.mutate();
+            }}
+          >
+            <Trash2 size={15} strokeWidth={1.5} /> Clear logs
+          </Button>
         </div>
       </div>
+
+      <Card>
+        <p className="text-sm text-secondary" style={{ lineHeight: 1.65 }}>
+          Audit logs are tamper-evident activity records showing who did what, when, and to which resource.
+          They are used for compliance, security reviews, and operational debugging in the admin portal.
+        </p>
+      </Card>
+
+      {status && <Alert variant={status.variant}>{status.text}</Alert>}
 
       <Card flush>
         {isLoading ? (
@@ -76,7 +136,7 @@ export function AuditLogsPage() {
                       </code>
                     </td>
                     <td>
-                      <Badge variant={log.actorRole === "admin" ? "primary" : "neutral"}>{log.actorRole}</Badge>
+                      <Badge variant={log.actorRole === "ADMIN" ? "primary" : "neutral"}>{log.actorRole}</Badge>
                     </td>
                     <td>
                       <Badge variant={actionVariant(log.action)}>{log.action}</Badge>

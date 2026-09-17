@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 8082",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "lucide-react": "^1.18.0",

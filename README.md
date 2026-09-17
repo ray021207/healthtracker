@@ -19,14 +19,28 @@ and wellness plans, and patients track their progress.
 
 ## Design system
 
-Both web surfaces share a single **subtle lavender** theme:
+Both web surfaces share a single **deep indigo** theme with automatic dark mode:
 
 - Design tokens (colours, radius, shadows, typography) live in each app's
-  `src/index.css` `:root`.
+  `src/index.css` `:root`, with a `@media (prefers-color-scheme: dark)` block
+  overriding them. Theme follows the device's OS setting — there is no manual
+  toggle. Every color in the app is token-driven (no hardcoded hex outside
+  `index.css`), so new UI should use `var(--color-*)` rather than literals.
 - Reusable base components (Button, Input, Card, Badge, Avatar, EmptyState,
   Modal, Spinner, etc.) live in `src/components/ui.tsx`.
 - Icons: [Lucide](https://lucide.dev) (`lucide-react`), 1.5px stroke.
 - Font: Inter (weights ≤ 700).
+
+## Patient app is installable (PWA)
+
+`apps/patient-web` ships a web manifest, generated icons, and a service worker
+(`public/manifest.webmanifest`, `public/sw.js`), so patients can install it to
+their phone's home screen from the browser (Android: Chrome's install prompt
+or menu; iOS: Safari's Share → "Add to Home Screen") — no app store needed.
+This works from any page, logged in or not. Icons are generated from
+`apps/patient-web/scripts/generateIcons.mjs` (requires `sharp`, installed
+on-demand — see the script for details); re-run it only if the icon design
+changes.
 
 ## Prerequisites
 
@@ -68,7 +82,7 @@ npm run dev:api
 npm run dev:admin
 
 # Terminal 3 — Patient portal (http://localhost:8082)
-npm run dev -w @monark/patient-web
+npm run dev:patient-web
 ```
 
 Wiring between the front ends and the API:
@@ -82,36 +96,45 @@ Wiring between the front ends and the API:
 
 ```bash
 npm run typecheck                 # typecheck every workspace
+npm run test                      # test every workspace
 npm run build                     # build every workspace
 npm run build -w @monark/admin    # build a single app
 npm run test  -w @monark/api      # API unit/integration tests
 ```
 
+CI (`.github/workflows/ci.yml`) runs typecheck → test → build on every push
+and PR to `main`.
+
 Auth rate limiting is environment-aware (lenient in development, stricter in
 production) and can be tuned with `AUTH_RATE_LIMIT_MAX` /
 `AUTH_RATE_LIMIT_WINDOW_MIN` in `packages/api/.env`.
 
-## Deployment runbook
+## Deployment
 
-### Backend (HIPAA-eligible host)
-
-1. Deploy `packages/api` to a HIPAA-eligible environment (AWS/GCP with a BAA).
-2. Use managed PostgreSQL with encrypted storage and SSL connections.
-3. Configure environment variables from `.env.example` (`NODE_ENV=production`).
-4. Apply migrations: `npm run prisma:deploy -w @monark/api`.
-5. Start with a production process manager/container.
-6. Terminate HTTPS/TLS 1.2+ at the ingress/load balancer.
-
-### Web portals (Admin + Patient)
-
-1. Set the production API origin (`VITE_API_URL` for admin; configure the
-   patient-web `/api` target for its host).
-2. Build the static bundle:
-   - `npm run build -w @monark/admin`
-   - `npm run build -w @monark/patient-web`
-3. Serve the generated `dist/` from any static host/CDN.
+The actual, current deploy path (Neon + Render + Vercel, free-tier-friendly)
+is documented step by step in [`DEPLOY.md`](./DEPLOY.md) — follow that, not a
+generic runbook. In short: `packages/api` runs on Render, Postgres is Neon,
+and both `apps/admin` and `apps/patient-web` are static Vite builds on Vercel.
+If you later move to a different host (including a HIPAA-eligible one with a
+signed BAA), the same build/env-var shape applies — `npm run build` per app,
+`prisma migrate deploy` for the database, and the env vars listed in
+`.env.example`.
 
 ## Security notes
 
+- Sensitive `HealthProfile` fields (labs, medications, conditions, allergies)
+  are encrypted at rest with AES-256-GCM (`packages/api/src/utils/encryption.ts`,
+  `healthProfileCrypto.ts`), on top of the database provider's own encryption
+  at rest and TLS in transit. Encryption/decryption happens at the route
+  boundary, so the rest of the app only ever sees plain values.
+  ⚠️ **`ENCRYPTION_KEY` cannot be rotated by just changing it** — every
+  existing health profile is encrypted with whatever key was set when it was
+  saved. See the warning in `DEPLOY.md` step 3.2 before touching this in
+  production.
 - No patient PII appears in page titles, browser tabs, or URL parameters.
 - Secrets live only in `packages/api/.env` (git-ignored).
+- `apps/admin/src/pages/LegalPage.tsx` and `apps/patient-web/src/pages/LegalPage.tsx`
+  serve Terms of Service and a Privacy Policy at `/terms` and `/privacy` in
+  both apps. The content is accurate to what the app actually does but is
+  **not legal advice** — it has no real company name, address, or contact
+  email filled in, and should get a lawyer's pass before it's binding.

@@ -1,27 +1,60 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Search, UserPlus, Users, ArrowRight } from "lucide-react";
+import { Search, UserPlus, Users, ArrowRight, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 
 import { api } from "../lib/api";
-import { Avatar, Badge, Button, Card, EmptyState, Skeleton } from "../components/ui";
+import { Alert, Avatar, Badge, Button, Card, EmptyState, Skeleton } from "../components/ui";
 
 const PAGE_SIZE = 10;
 
 export function PatientsListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["patients"], queryFn: api.getPatients });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [status, setStatus] = useState<{ text: string; variant: "success" | "error" | "info" } | null>(null);
+
+  const archiveMutation = useMutation({
+    mutationFn: (patientId: string) => api.archivePatient(patientId),
+    onSuccess: () => {
+      setStatus({ text: "Patient archived", variant: "success" });
+      void queryClient.invalidateQueries({ queryKey: ["patients"] });
+    },
+    onError: (error) => {
+      setStatus({ text: error instanceof Error ? error.message : "Archive failed", variant: "error" });
+    },
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: (patientId: string) => api.unarchivePatient(patientId),
+    onSuccess: () => {
+      setStatus({ text: "Patient restored", variant: "success" });
+      void queryClient.invalidateQueries({ queryKey: ["patients"] });
+    },
+    onError: (error) => {
+      setStatus({ text: error instanceof Error ? error.message : "Restore failed", variant: "error" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (patientId: string) => api.deletePatient(patientId),
+    onSuccess: () => {
+      setStatus({ text: "Patient deleted", variant: "success" });
+      void queryClient.invalidateQueries({ queryKey: ["patients"] });
+    },
+    onError: (error) => {
+      setStatus({ text: error instanceof Error ? error.message : "Delete failed", variant: "error" });
+    },
+  });
 
   const patients = (data?.patients ?? []) as Record<string, unknown>[];
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return patients;
-    return patients.filter((p) =>
-      `${p.firstName ?? ""} ${p.lastName ?? ""} ${p.email ?? ""}`.toLowerCase().includes(q),
-    );
+    return patients.filter((p) => `${p.firstName ?? ""} ${p.lastName ?? ""}`.toLowerCase().includes(q));
   }, [patients, search]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -38,7 +71,7 @@ export function PatientsListPage() {
             style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)" }}
           />
           <input
-            placeholder="Search patients…"
+            placeholder="Filter by patient name…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -51,6 +84,8 @@ export function PatientsListPage() {
           Add Patient
         </Button>
       </div>
+
+      {status && <Alert variant={status.variant}>{status.text}</Alert>}
 
       <Card flush>
         {isLoading ? (
@@ -98,9 +133,38 @@ export function PatientsListPage() {
                         <Badge variant={active ? "success" : "neutral"}>{active ? "Active" : "Inactive"}</Badge>
                       </td>
                       <td style={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
-                        <Button variant="secondary" size="sm" onClick={() => navigate(`/patients/${id}`)}>
-                          View <ArrowRight size={14} strokeWidth={1.5} />
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={archiveMutation.isPending || unarchiveMutation.isPending}
+                            onClick={() => {
+                              if (active) {
+                                archiveMutation.mutate(id);
+                              } else {
+                                unarchiveMutation.mutate(id);
+                              }
+                            }}
+                          >
+                            {active ? <Archive size={14} strokeWidth={1.5} /> : <ArchiveRestore size={14} strokeWidth={1.5} />}
+                            {active ? "Archive" : "Unarchive"}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            loading={deleteMutation.isPending}
+                            onClick={() => {
+                              const ok = window.confirm("Delete this patient permanently? This removes profile, progress, plans, and logs.");
+                              if (!ok) return;
+                              deleteMutation.mutate(id);
+                            }}
+                          >
+                            <Trash2 size={14} strokeWidth={1.5} /> Delete
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => navigate(`/patients/${id}`)}>
+                            View <ArrowRight size={14} strokeWidth={1.5} />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );

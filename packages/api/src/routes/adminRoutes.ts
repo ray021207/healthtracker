@@ -23,6 +23,8 @@ import {
 } from "../utils/clinicalCalculations.js";
 import { generateTemporaryPassword } from "../utils/password.js";
 import { getClientIp, getUserAgent } from "../utils/requestMeta.js";
+import { normalizeWeightToLb } from "../utils/unitNormalization.js";
+import { decryptHealthProfileFields, encryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
 
 const router = Router();
 
@@ -42,7 +44,7 @@ const patientUpdateSchema = patientCreateSchema.partial().refine((input) => Obje
 
 const healthProfileUpsertSchema = z.object({
   heightCm: z.number().min(80).max(260),
-  weightKg: z.number().min(20).max(400),
+  weightKg: z.number().min(70).max(500),
   ldlMgDl: z.number().min(1).max(500).optional(),
   hdlMgDl: z.number().min(1).max(200).optional(),
   triglyceridesMgDl: z.number().min(1).max(1500).optional(),
@@ -59,6 +61,10 @@ const healthProfileUpsertSchema = z.object({
   medications: z.array(z.string().trim().min(1).max(150)).default([]),
   includeAyurvedic: z.boolean().optional().default(false),
   includeAntiInflammatory: z.boolean().optional().default(false),
+});
+
+const auditLogArchiveSchema = z.object({
+  olderThanDays: z.number().int().min(1).max(3650).default(90),
 });
 
 function calculateAge(dateOfBirth: Date): number {
@@ -279,6 +285,91 @@ router.put("/patients/:id", async (req, res, next) => {
   }
 });
 
+router.post("/patients/:id/archive", async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user?.clinicId) {
+      res.status(403).json({ message: "Clinic context missing" });
+      return;
+    }
+
+    const existing = await prisma.patient.findFirst({
+      where: { id: req.params.id, clinicId: user.clinicId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      res.status(404).json({ message: "Patient not found" });
+      return;
+    }
+
+    const patient = await prisma.patient.update({
+      where: { id: existing.id },
+      data: { isActive: false },
+      select: { id: true, isActive: true },
+    });
+
+    await createAuditLog({
+      actorId: user.id,
+      actorRole: user.role,
+      action: "REVOKE_ACCESS",
+      resourceType: "Patient",
+      resourceId: patient.id,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req),
+      adminId: user.id,
+      patientId: patient.id,
+    });
+
+    res.status(200).json({ patient });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/patients/:id/unarchive", async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user?.clinicId) {
+      res.status(403).json({ message: "Clinic context missing" });
+      return;
+    }
+
+    const existing = await prisma.patient.findFirst({
+      where: { id: req.params.id, clinicId: user.clinicId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      res.status(404).json({ message: "Patient not found" });
+      return;
+    }
+
+    const patient = await prisma.patient.update({
+      where: { id: existing.id },
+      data: { isActive: true },
+      select: { id: true, isActive: true },
+    });
+
+    await createAuditLog({
+      actorId: user.id,
+      actorRole: user.role,
+      action: "UPDATE_PATIENT",
+      resourceType: "Patient",
+      resourceId: patient.id,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req),
+      adminId: user.id,
+      patientId: patient.id,
+    });
+
+    res.status(200).json({ patient });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Backward compatible route used by older clients.
 router.delete("/patients/:id/deactivate", async (req, res, next) => {
   try {
     const user = req.user;
@@ -321,6 +412,56 @@ router.delete("/patients/:id/deactivate", async (req, res, next) => {
   }
 });
 
+router.delete("/patients/:id", async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user?.clinicId) {
+      res.status(403).json({ message: "Clinic context missing" });
+      return;
+    }
+
+    const existing = await prisma.patient.findFirst({
+      where: { id: req.params.id, clinicId: user.clinicId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      res.status(404).json({ message: "Patient not found" });
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.auditLog.deleteMany({
+        where: {
+          OR: [
+            { patientId: existing.id },
+            { actorId: existing.id, actorRole: "PATIENT" },
+          ],
+        },
+      });
+      await tx.dailyLog.deleteMany({ where: { patientId: existing.id } });
+      await tx.generatedPlan.deleteMany({ where: { patientId: existing.id } });
+      await tx.healthProfile.deleteMany({ where: { patientId: existing.id } });
+      await tx.patient.delete({ where: { id: existing.id } });
+    });
+
+    await createAuditLog({
+      actorId: user.id,
+      actorRole: user.role,
+      action: "UPDATE_PATIENT",
+      resourceType: "PatientDeleted",
+      resourceId: req.params.id,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req),
+      adminId: user.id,
+    });
+
+    res.status(200).json({ message: "Patient deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/patients/:id/health-profile", async (req, res, next) => {
   try {
     const user = req.user;
@@ -354,7 +495,19 @@ router.get("/patients/:id/health-profile", async (req, res, next) => {
       patientId: patient.id,
     });
 
-    res.status(200).json({ healthProfile: patient.healthProfile });
+    const profile = patient.healthProfile;
+    if (!profile) {
+      res.status(200).json({ healthProfile: null });
+      return;
+    }
+
+    res.status(200).json({
+      healthProfile: {
+        ...decryptHealthProfileFields(profile),
+        weightKg: normalizeWeightToLb(profile.weightKg),
+        targetWeightKg: normalizeWeightToLb(profile.targetWeightKg),
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -394,6 +547,7 @@ router.put("/patients/:id/health-profile", async (req, res, next) => {
     const tdee = calculateTDEE(bmr, parsed.activityLevel);
     const dailyCalorieTarget = calculateDailyCalorieTarget(tdee, parsed.weightKg, targetWeightKg);
     const macros = calculateMacros(dailyCalorieTarget, parsed.dietStyle);
+    const encryptedFields = encryptHealthProfileFields(parsed);
 
     const healthProfile = await prisma.healthProfile.upsert({
       where: { patientId: patient.id },
@@ -403,20 +557,11 @@ router.put("/patients/:id/health-profile", async (req, res, next) => {
         weightKg: parsed.weightKg,
         targetWeightKg,
         bmi,
-        ldlMgDl: parsed.ldlMgDl,
-        hdlMgDl: parsed.hdlMgDl,
-        triglyceridesMgDl: parsed.triglyceridesMgDl,
-        fastingGlucoseMgDl: parsed.fastingGlucoseMgDl,
-        hba1cPercent: parsed.hba1cPercent,
+        ...encryptedFields,
         isDiabetic: parsed.isDiabetic,
-        systolicBp: parsed.systolicBp,
-        diastolicBp: parsed.diastolicBp,
         activityLevel: parsed.activityLevel,
         dietStyle: parsed.dietStyle,
         dietaryRestrictions: parsed.dietaryRestrictions,
-        allergies: parsed.allergies,
-        medicalConditions: parsed.medicalConditions,
-        medications: parsed.medications,
         includeAyurvedic: parsed.includeAyurvedic,
         includeAntiInflammatory: parsed.includeAntiInflammatory,
         bmr,
@@ -431,20 +576,11 @@ router.put("/patients/:id/health-profile", async (req, res, next) => {
         weightKg: parsed.weightKg,
         targetWeightKg,
         bmi,
-        ldlMgDl: parsed.ldlMgDl,
-        hdlMgDl: parsed.hdlMgDl,
-        triglyceridesMgDl: parsed.triglyceridesMgDl,
-        fastingGlucoseMgDl: parsed.fastingGlucoseMgDl,
-        hba1cPercent: parsed.hba1cPercent,
+        ...encryptedFields,
         isDiabetic: parsed.isDiabetic,
-        systolicBp: parsed.systolicBp,
-        diastolicBp: parsed.diastolicBp,
         activityLevel: parsed.activityLevel,
         dietStyle: parsed.dietStyle,
         dietaryRestrictions: parsed.dietaryRestrictions,
-        allergies: parsed.allergies,
-        medicalConditions: parsed.medicalConditions,
-        medications: parsed.medications,
         includeAyurvedic: parsed.includeAyurvedic,
         includeAntiInflammatory: parsed.includeAntiInflammatory,
         bmr,
@@ -468,7 +604,7 @@ router.put("/patients/:id/health-profile", async (req, res, next) => {
       patientId: patient.id,
     });
 
-    res.status(200).json({ healthProfile });
+    res.status(200).json({ healthProfile: decryptHealthProfileFields(healthProfile) });
   } catch (error) {
     next(error);
   }
@@ -620,6 +756,72 @@ router.get("/audit-logs", async (req, res, next) => {
     });
 
     res.status(200).json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/audit-logs/archive", async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user?.clinicId) {
+      res.status(403).json({ message: "Clinic context missing" });
+      return;
+    }
+
+    const parsed = auditLogArchiveSchema.parse(req.body ?? {});
+    const cutoff = new Date(Date.now() - parsed.olderThanDays * 24 * 60 * 60 * 1000);
+
+    const result = await prisma.auditLog.deleteMany({
+      where: {
+        timestamp: { lt: cutoff },
+        OR: [
+          {
+            admin: {
+              clinicId: user.clinicId,
+            },
+          },
+          {
+            patient: {
+              clinicId: user.clinicId,
+            },
+          },
+        ],
+      },
+    });
+
+    res.status(200).json({ deletedCount: result.count });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/audit-logs", async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user?.clinicId) {
+      res.status(403).json({ message: "Clinic context missing" });
+      return;
+    }
+
+    const result = await prisma.auditLog.deleteMany({
+      where: {
+        OR: [
+          {
+            admin: {
+              clinicId: user.clinicId,
+            },
+          },
+          {
+            patient: {
+              clinicId: user.clinicId,
+            },
+          },
+        ],
+      },
+    });
+
+    res.status(200).json({ deletedCount: result.count });
   } catch (error) {
     next(error);
   }

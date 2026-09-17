@@ -59,20 +59,22 @@ model HealthProfile {
   weightKg                Float
   targetWeightKg          Float
   bmi                     Float
-  ldlMgDl                 Float?
-  hdlMgDl                 Float?
-  triglyceridesMgDl       Float?
-  fastingGlucoseMgDl      Float?
-  hba1cPercent            Float?
+  // Encrypted at rest (AES-256-GCM, see utils/encryption.ts) — stored as ciphertext strings,
+  // encrypted/decrypted at the route-handler boundary. Values are numbers/arrays over the API.
+  ldlMgDl                 String?
+  hdlMgDl                 String?
+  triglyceridesMgDl       String?
+  fastingGlucoseMgDl      String?
+  hba1cPercent            String?
   isDiabetic              Boolean       @default(false)
-  systolicBp              Int?
-  diastolicBp             Int?
+  systolicBp              String?
+  diastolicBp             String?
   activityLevel           ActivityLevel
   dietStyle               DietStyle
   dietaryRestrictions     String[]
-  allergies               String[]
-  medicalConditions       String[]
-  medications             String[]
+  allergies               String?
+  medicalConditions       String?
+  medications             String?
   includeAyurvedic        Boolean       @default(false)
   includeAntiInflammatory Boolean       @default(false)
   bmr                     Float

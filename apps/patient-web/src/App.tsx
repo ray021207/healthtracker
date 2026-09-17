@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./lib/auth";
 import LoginPage from "./pages/LoginPage";
+import LegalPage from "./pages/LegalPage";
 import Layout from "./components/Layout";
 import HomePage from "./pages/HomePage";
 import PlanPage from "./pages/PlanPage";
@@ -19,6 +20,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={accessToken ? <Navigate to="/home" replace /> : <LoginPage />} />
+      <Route path="/terms" element={<LegalPage />} />
+      <Route path="/privacy" element={<LegalPage />} />
       <Route
         path="/"
         element={

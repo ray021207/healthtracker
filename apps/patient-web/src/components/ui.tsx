@@ -63,7 +63,13 @@ export function Skeleton({ height = 16, radius = 10 }: { height?: number; radius
 }
 
 /* Avatar with initials + deterministic lavender tone */
-const TONES = ["#EDE9F6", "#E5DDF1", "#DCD0EC", "#D2C3E6", "#E8E2F3"];
+const TONES = [
+  "var(--color-avatar-1)",
+  "var(--color-avatar-2)",
+  "var(--color-avatar-3)",
+  "var(--color-avatar-4)",
+  "var(--color-avatar-5)",
+];
 function hashName(name: string): number {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;

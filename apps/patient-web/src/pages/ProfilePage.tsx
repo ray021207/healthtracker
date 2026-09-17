@@ -145,18 +145,6 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Generate plan */}
-      <Card className="mb-4">
-        <h2 className="mb-2">Wellness Plan</h2>
-        <div className="text-sm text-secondary mb-3" style={{ lineHeight: 1.6 }}>
-          Generate or regenerate your personalised 90-day plan based on your clinical profile and lifestyle preferences.
-        </div>
-        <Button block leftIcon={<Sparkles size={18} strokeWidth={1.5} />} loading={planGenerating} onClick={handleGeneratePlan}>
-          {planGenerating ? "Generating…" : "Generate My 90-Day Plan"}
-        </Button>
-        {planStatus && <div className="mt-3"><Alert variant={planGenerating ? "info" : "success"}>{planStatus}</Alert></div>}
-      </Card>
-
       {/* Health preferences */}
       <Card className="mb-4">
         <h2 className="mb-2">Health Preferences</h2>
@@ -211,6 +199,16 @@ export default function ProfilePage() {
             </div>
             {hpStatus && <Alert variant={hpStatus.type === "ok" ? "success" : "error"}>{hpStatus.msg}</Alert>}
             <Button type="submit" block loading={hpSaving}>{hpSaving ? "Saving…" : "Save Preferences"}</Button>
+
+            <div style={{ marginTop: 6, paddingTop: 14, borderTop: "1px solid var(--color-border)" }}>
+              <div className="text-sm text-secondary mb-3" style={{ lineHeight: 1.6 }}>
+                Generate or regenerate your personalised 90-day plan based on your saved clinical profile and preferences.
+              </div>
+              <Button block leftIcon={<Sparkles size={18} strokeWidth={1.5} />} loading={planGenerating} onClick={handleGeneratePlan}>
+                {planGenerating ? "Generating…" : "Generate My 90-Day Plan"}
+              </Button>
+              {planStatus && <div className="mt-3"><Alert variant={planGenerating ? "info" : "success"}>{planStatus}</Alert></div>}
+            </div>
           </form>
         )}
       </Card>

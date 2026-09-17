@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Activity } from "lucide-react";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { api } from "../lib/api";
 import { Button, Card, EmptyState, Skeleton } from "../components/ui";
@@ -25,8 +26,18 @@ export function PatientProgressPage() {
 
   const progress = (data?.progress ?? {}) as Record<string, unknown>;
   const entries = Object.entries(progress);
-  const scalars = entries.filter(([, v]) => v == null || typeof v !== "object");
-  const objects = entries.filter(([, v]) => v != null && typeof v === "object");
+  const weightTrend = Array.isArray(progress.weightTrend)
+    ? (progress.weightTrend as Array<{ date?: unknown; weightKg?: unknown; weightLb?: unknown }>).filter(
+        (item) => typeof item?.date === "string" && (typeof item?.weightLb === "number" || typeof item?.weightKg === "number"),
+      )
+    : [];
+  const chartData = weightTrend.map((point) => ({
+    date: new Date(String(point.date)).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    weightLb: Number(Number(point.weightLb ?? point.weightKg).toFixed(1)),
+  }));
+
+  const scalars = entries.filter(([k, v]) => k !== "weightTrend" && (v == null || typeof v !== "object"));
+  const objects = entries.filter(([k, v]) => k !== "weightTrend" && v != null && typeof v === "object");
 
   return (
     <div className="page-enter">
@@ -51,6 +62,37 @@ export function PatientProgressPage() {
         </Card>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Card>
+            <div className="card-header"><h2>Weight Trend</h2></div>
+            {chartData.length === 0 ? (
+              <p className="text-sm text-secondary">No weight entries logged yet.</p>
+            ) : (
+              <div style={{ width: "100%", height: 280 }}>
+                <ResponsiveContainer>
+                  <LineChart data={chartData} margin={{ left: 8, right: 12, top: 12, bottom: 6 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12, fill: "var(--color-text-muted)" }} />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: "var(--color-text-muted)" }}
+                      unit=" lb"
+                      width={56}
+                      domain={["auto", "auto"]}
+                    />
+                    <Tooltip formatter={(value: number) => [`${value} lb`, "Weight"]} />
+                    <Line
+                      type="monotone"
+                      dataKey="weightLb"
+                      stroke="var(--color-primary)"
+                      strokeWidth={2.5}
+                      dot={{ r: 3, fill: "var(--color-primary)" }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+
           {scalars.length > 0 && (
             <div className="grid-3">
               {scalars.map(([key, value]) => (

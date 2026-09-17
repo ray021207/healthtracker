@@ -9,8 +9,11 @@ import {
 import { z } from "zod";
 
 import { prisma } from "../lib/prisma.js";
+import { normalizeWeightToLb } from "../utils/unitNormalization.js";
+import { decryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+export const PLAN_MODEL = "claude-sonnet-5";
 
 const mealSchema = z.object({
   name: z.string(),
@@ -109,8 +112,13 @@ You must always:
 - Do NOT include recipes, ingredient lists, prepTime, warmUp, coolDown, or modification fields
 `;
 
-export const buildUserPrompt = (profile: HealthProfile, patient: Patient) => {
+export const buildUserPrompt = (
+  profile: ReturnType<typeof decryptHealthProfileFields<HealthProfile>>,
+  patient: Patient,
+) => {
   const ageYears = calculateAge(patient.dateOfBirth);
+  const weightLb = normalizeWeightToLb(profile.weightKg);
+  const targetWeightLb = normalizeWeightToLb(profile.targetWeightKg);
   return `
 Generate a 90-day personalised wellness plan as 3 phases, each with a 7-day repeating weekly template.
 
@@ -118,8 +126,8 @@ PATIENT CLINICAL DATA:
 - Age: ${ageYears} years
 - Gender: ${patient.gender}
 - Height: ${profile.heightCm} cm
-- Current weight: ${profile.weightKg} kg
-- Target weight: ${profile.targetWeightKg ?? "not set"} kg
+- Current weight: ${weightLb} lb
+- Target weight: ${targetWeightLb ?? "not set"} lb
 - BMI: ${profile.bmi.toFixed(1)}
 - BMR: ${profile.bmr} kcal/day
 - TDEE: ${profile.tdee} kcal/day
@@ -262,10 +270,12 @@ export async function generatePatientPlan(patientId: string, generatedBy: string
 
   let rawText = "";
   const stream = anthropic.messages.stream({
-    model: "claude-haiku-4-5-20251001",
+    model: PLAN_MODEL,
     max_tokens: 16000,
     system: buildSystemPrompt(),
-    messages: [{ role: "user", content: buildUserPrompt(patient.healthProfile, patient) }],
+    messages: [
+      { role: "user", content: buildUserPrompt(decryptHealthProfileFields(patient.healthProfile), patient) },
+    ],
   });
   for await (const chunk of stream) {
     if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
@@ -286,7 +296,7 @@ export async function generatePatientPlan(patientId: string, generatedBy: string
     create: {
       patientId,
       generatedBy,
-      aiModel: "claude-haiku-4-5-20251001",
+      aiModel: PLAN_MODEL,
       startDate: new Date(),
       totalDays: 90,
       dietPlan,
@@ -297,7 +307,7 @@ export async function generatePatientPlan(patientId: string, generatedBy: string
     update: {
       regeneratedAt: new Date(),
       generatedBy,
-      aiModel: "claude-haiku-4-5-20251001",
+      aiModel: PLAN_MODEL,
       startDate: new Date(),
       totalDays: 90,
       dietPlan,

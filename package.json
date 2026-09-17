@@ -9,10 +9,12 @@
   "scripts": {
     "dev:mobile": "npm run dev -w @monark/mobile",
     "dev:admin": "npm run dev -w @monark/admin",
+    "dev:patient-web": "npm run dev -w @monark/patient-web",
     "dev:api": "npm run dev -w @monark/api",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

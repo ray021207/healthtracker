@@ -103,7 +103,8 @@ function MetricRow({ label, value, unit, range, status }: { label: string; value
 function ClinicalProfileView({ profile, gender }: { profile: Record<string, unknown>; gender: string }) {
   const height = num(profile.heightCm);
   const weight = num(profile.weightKg);
-  const bmi = height && weight ? Number((weight / Math.pow(height / 100, 2)).toFixed(1)) : undefined;
+  const bmi = num(profile.bmi);
+  const targetWeight = num(profile.targetWeightKg);
   const ldl = num(profile.ldlMgDl);
   const hdl = num(profile.hdlMgDl);
   const trig = num(profile.triglyceridesMgDl);
@@ -121,8 +122,8 @@ function ClinicalProfileView({ profile, gender }: { profile: Record<string, unkn
         <Card>
           <div className="card-header"><h2>Body Measurements</h2></div>
           <MetricRow label="Height" value={height} unit="cm" />
-          <MetricRow label="Weight" value={weight} unit="kg" />
-          <MetricRow label="Target Weight" value={num(profile.targetWeightKg)} unit="kg" />
+          <MetricRow label="Weight" value={weight} unit="lb" />
+          <MetricRow label="Target Weight" value={targetWeight} unit="lb" />
           <MetricRow label="BMI" value={bmi} range="18.5–24.9" status={bmiStatus(bmi)} />
         </Card>
 
