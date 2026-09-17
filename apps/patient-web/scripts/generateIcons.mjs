@@ -12,13 +12,21 @@ mkdirSync(outDir, { recursive: true });
 
 const PRIMARY = "#4F4A85";
 
+// The real lucide-react "Leaf" icon is two paths — the leaf outline plus its
+// stem/vein line. The earlier version of this script only drew the outline
+// (and got the curve wrong too), which is why it read as a crescent moon
+// instead of a leaf.
+const LEAF_PATHS = `
+  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+  <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+`;
+
 // Full-bleed square icon (used for the standard "any" purpose entries).
 const iconSvg = (size) => `
 <svg width="${size}" height="${size}" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" fill="${PRIMARY}"/>
-  <g transform="translate(256 256) scale(15.5) translate(-12 -12)">
-    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 8.9 17 8.9c-4 2-6 7-6 11.1Z"
-          fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(256 256) scale(15.5) translate(-12 -12)" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    ${LEAF_PATHS}
   </g>
 </svg>`;
 
@@ -26,9 +34,8 @@ const iconSvg = (size) => `
 const maskableSvg = (size) => `
 <svg width="${size}" height="${size}" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" fill="${PRIMARY}"/>
-  <g transform="translate(256 256) scale(11.5) translate(-12 -12)">
-    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 8.9 17 8.9c-4 2-6 7-6 11.1Z"
-          fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(256 256) scale(11.5) translate(-12 -12)" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    ${LEAF_PATHS}
   </g>
 </svg>`;
 
