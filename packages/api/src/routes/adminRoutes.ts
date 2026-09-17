@@ -26,6 +26,7 @@ import { generateTemporaryPassword } from "../utils/password.js";
 import { getClientIp, getUserAgent } from "../utils/requestMeta.js";
 import { normalizeWeightToLb } from "../utils/unitNormalization.js";
 import { decryptHealthProfileFields, encryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -633,7 +634,16 @@ router.post("/patients/:id/generate-plan", planGenerationRateLimiter, async (req
       return;
     }
 
-    await generatePatientPlan(target.id, user.id);
+    // See patientRoutes.ts's /generate-plan for why this doesn't await generation
+    // before responding — a held-open 1-2 minute connection risks getting killed
+    // in transit, which looked like a failure client-side even after a successful
+    // generation. The frontend polls GET /patients/:id/plan to detect completion.
+    generatePatientPlan(target.id, user.id).catch((error) => {
+      logger.error("plan_generation_failed", {
+        patientId: target.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    });
 
     await createAuditLog({
       actorId: user.id,
@@ -647,7 +657,7 @@ router.post("/patients/:id/generate-plan", planGenerationRateLimiter, async (req
       patientId: target.id,
     });
 
-    res.status(200).json({ message: "Plan generated successfully" });
+    res.status(202).json({ message: "Plan generation started — this takes about a minute." });
   } catch (error) {
     next(error);
   }

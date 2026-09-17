@@ -23,6 +23,46 @@ function CheckRow({ label, sub, checked, onChange }: { label: string; sub: strin
   );
 }
 
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1);
+
+// A plain <select>-based time picker. Native <input type="time"> was
+// overflowing its container on Android Chrome — that widget enforces its own
+// minimum content width and simply ignores a narrower CSS width, so no CSS
+// fix could contain it. Selects always respect layout width, everywhere.
+function TimePicker({ value, onChange, disabled }: { value: string; onChange: (next: string) => void; disabled?: boolean }) {
+  const [rawH, rawM] = value.split(":").map(Number);
+  const h24 = rawH ?? 19;
+  const m = rawM ?? 0;
+  const period = h24 >= 12 ? "PM" : "AM";
+  const h12 = h24 % 12 || 12;
+
+  const update = (nextH12: number, nextM: number, nextPeriod: string) => {
+    let h = nextH12 % 12;
+    if (nextPeriod === "PM") h += 12;
+    onChange(`${String(h).padStart(2, "0")}:${String(nextM).padStart(2, "0")}`);
+  };
+
+  return (
+    <div style={{ display: "flex", gap: 8 }}>
+      <select value={h12} disabled={disabled} onChange={(e) => update(Number(e.target.value), m, period)} style={{ flex: 1, minWidth: 0 }}>
+        {HOURS_12.map((h) => (
+          <option key={h} value={h}>{h}</option>
+        ))}
+      </select>
+      <select value={m} disabled={disabled} onChange={(e) => update(h12, Number(e.target.value), period)} style={{ flex: 1, minWidth: 0 }}>
+        {MINUTES.map((mm) => (
+          <option key={mm} value={mm}>{String(mm).padStart(2, "0")}</option>
+        ))}
+      </select>
+      <select value={period} disabled={disabled} onChange={(e) => update(h12, m, e.target.value)} style={{ flex: 1, minWidth: 0 }}>
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { user, accessToken, logout } = useAuth();
   const { generating: planGenerating, status: planStatus, error: planError, generatePlan } = usePlanGeneration();
@@ -277,13 +317,11 @@ export default function ProfilePage() {
 
         {isPushSupported() && (
           <div style={{ marginTop: 16, opacity: reminderEnabled ? 1 : 0.5 }}>
-            <label htmlFor="reminderTime">Reminder time</label>
-            <input
-              id="reminderTime"
-              type="time"
+            <label>Reminder time</label>
+            <TimePicker
               value={reminderTime}
               disabled={!reminderEnabled || reminderSaving}
-              onChange={(e) => handleReminderTimeChange(e.target.value)}
+              onChange={handleReminderTimeChange}
             />
           </div>
         )}

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, Sparkles, CalendarRange, Apple, Dumbbell, Leaf, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { api } from "../lib/api";
+import { waitForPlanReady } from "../lib/pollPlan";
 import { Alert, Avatar, Button, Card, SelectInput } from "../components/ui";
 
 const STEPS = ["Select Patient", "Plan Settings", "Review & Generate"] as const;
@@ -84,9 +85,16 @@ export function GeneratePlanPage() {
     }
     setGenerating(true);
     setStatus({ text: "Generating 90-day plan… this takes about 1–2 minutes." });
+    const requestedAt = Date.now();
     try {
-      const response = await api.generatePlan(patientId);
-      setStatus({ text: response.message });
+      await api.generatePlan(patientId);
+      const outcome = await waitForPlanReady(patientId, requestedAt);
+      setStatus({
+        text:
+          outcome === "ready"
+            ? "Plan generated successfully."
+            : "Still working on it — check the patient's Plans tab again in a few minutes.",
+      });
       setDone(true);
     } catch (error) {
       setStatus({ text: error instanceof Error ? error.message : "Generation failed", error: true });

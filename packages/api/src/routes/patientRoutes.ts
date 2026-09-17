@@ -22,6 +22,7 @@ import {
 import { normalizeWeightToLb } from "../utils/unitNormalization.js";
 import { decryptHealthProfileFields, encryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
 import { env } from "../config/env.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -689,7 +690,17 @@ router.post("/generate-plan", planGenerationRateLimiter, async (req, res, next) 
       return;
     }
 
-    await generatePatientPlan(req.user.id, req.user.id);
+    // Generation takes 1-2 minutes — holding the HTTP connection open that long risks
+    // it being killed by the phone's network, the browser, or a proxy in between,
+    // which used to surface as "Load failed" client-side even though the plan had
+    // actually finished generating server-side. Respond immediately instead; the
+    // client polls GET /patient/plan to find out when it's ready.
+    generatePatientPlan(req.user.id, req.user.id).catch((error) => {
+      logger.error("plan_generation_failed", {
+        patientId: req.user?.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    });
 
     await createAuditLog({
       actorId: req.user.id,
@@ -702,7 +713,7 @@ router.post("/generate-plan", planGenerationRateLimiter, async (req, res, next) 
       patientId: req.user.id,
     });
 
-    res.status(200).json({ message: "Plan generated successfully" });
+    res.status(202).json({ message: "Plan generation started — this takes about a minute." });
   } catch (error) {
     next(error);
   }

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Sparkles, FileText, HeartPulse, Activity, FolderOpen, Pencil, ArrowRight } from "lucide-react";
 
 import { api } from "../lib/api";
+import { waitForPlanReady } from "../lib/pollPlan";
 import { Alert, Avatar, Badge, Button, Card, EmptyState, Skeleton, cx } from "../components/ui";
 
 type Tab = "overview" | "profile" | "plans" | "progress" | "documents";
@@ -217,9 +218,16 @@ export function PatientDetailPage() {
     }
     setGenerating(true);
     setPlanMsg({ text: "Generating 90-day plan… this takes about 1–2 minutes." });
+    const requestedAt = Date.now();
     try {
-      const res = await api.generatePlan(id);
-      setPlanMsg({ text: res.message });
+      await api.generatePlan(id);
+      const outcome = await waitForPlanReady(id, requestedAt);
+      setPlanMsg({
+        text:
+          outcome === "ready"
+            ? "Plan generated successfully."
+            : "Still working on it — check back in a few minutes.",
+      });
       void queryClient.invalidateQueries({ queryKey: ["plan", id] });
     } catch (err) {
       setPlanMsg({ text: err instanceof Error ? err.message : "Generation failed", error: true });
