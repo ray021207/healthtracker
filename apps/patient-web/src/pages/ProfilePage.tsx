@@ -6,7 +6,7 @@ import { useAuth } from "../lib/auth";
 import { usePlanGeneration } from "../lib/planGeneration";
 import { api } from "../lib/api";
 import { disableReminder, enableReminder, isPushSupported } from "../lib/push";
-import { Alert, Avatar, Badge, Button, Card } from "../components/ui";
+import { Alert, Avatar, Badge, Button, Card, PasswordInput } from "../components/ui";
 
 const tagsToString = (arr: string[]) => arr.join(", ");
 const stringToTags = (s: string) => s.split(",").map((t) => t.trim()).filter(Boolean);
@@ -301,16 +301,16 @@ export default function ProfilePage() {
         <form onSubmit={handleChangePassword} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label htmlFor="currentPw">Current Password</label>
-            <input id="currentPw" type="password" autoComplete="current-password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} />
+            <PasswordInput id="currentPw" autoComplete="current-password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} />
           </div>
           <div>
             <label htmlFor="newPw">New Password</label>
-            <input id="newPw" type="password" autoComplete="new-password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+            <PasswordInput id="newPw" autoComplete="new-password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
             <div className="field-hint">Minimum 12 characters</div>
           </div>
           <div>
             <label htmlFor="confirmPw">Confirm New Password</label>
-            <input id="confirmPw" type="password" autoComplete="new-password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
+            <PasswordInput id="confirmPw" autoComplete="new-password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
           </div>
           {pwStatus && <Alert variant={pwStatus.type === "ok" ? "success" : "error"}>{pwStatus.msg}</Alert>}
           <Button type="submit" block loading={saving}>{saving ? "Updating…" : "Update Password"}</Button>

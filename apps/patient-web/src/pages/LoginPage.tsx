@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Leaf, Check } from "lucide-react";
 
 import { useAuth } from "../lib/auth";
-import { Alert, Button } from "../components/ui";
+import { Alert, Button, PasswordInput } from "../components/ui";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -138,9 +138,8 @@ export default function LoginPage() {
             </div>
             <div>
               <label htmlFor="password">Password</label>
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="current-password"
                 className={passwordError ? "invalid" : undefined}
                 value={password}

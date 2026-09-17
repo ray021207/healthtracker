@@ -273,21 +273,12 @@ input, select, textarea {
   transition: var(--transition);
 }
 textarea { min-height: 96px; padding: 12px 14px; resize: vertical; line-height: 1.6; }
-/* Native time/date pickers render their own inner icon + segmented fields, which
-   don't always respect the input's own box model — pin them to fit inside it. */
-input[type="time"],
-input[type="date"] {
-  min-width: 0;
-  max-width: 100%;
-}
+/* The native picker icon on time/date inputs defaults to a tight margin that
+   can make it look like it's poking past the input's rounded corner — give it
+   a little breathing room instead of letting the browser crowd it. */
 input[type="time"]::-webkit-calendar-picker-indicator,
 input[type="date"]::-webkit-calendar-picker-indicator {
   margin-left: 8px;
-  padding: 0;
-}
-input[type="time"]::-webkit-datetime-edit,
-input[type="date"]::-webkit-datetime-edit {
-  overflow: hidden;
 }
 input:focus, select:focus, textarea:focus {
   border-color: var(--color-primary);

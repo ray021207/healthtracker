@@ -1,5 +1,6 @@
+import { useState } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 /* Tiny classname joiner */
 export function cx(...parts: Array<string | false | null | undefined>): string {
@@ -158,10 +159,44 @@ interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string | null;
   hint?: string;
 }
-export function TextInput({ label, error, hint, id, className, ...rest }: TextInputProps) {
+export function TextInput({ label, error, hint, id, className, type, ...rest }: TextInputProps) {
+  const [visible, setVisible] = useState(false);
+  const isPassword = type === "password";
+
   return (
     <Field label={label} htmlFor={id} error={error} hint={hint}>
-      <input id={id} className={cx(error && "invalid", className)} {...rest} />
+      {isPassword ? (
+        <div style={{ position: "relative" }}>
+          <input
+            id={id}
+            type={visible ? "text" : "password"}
+            className={cx(error && "invalid", className)}
+            style={{ paddingRight: 44 }}
+            {...rest}
+          />
+          <button
+            type="button"
+            onClick={() => setVisible((v) => !v)}
+            aria-label={visible ? "Hide password" : "Show password"}
+            style={{
+              position: "absolute",
+              right: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--color-text-muted)",
+              display: "flex",
+              padding: 4,
+            }}
+          >
+            {visible ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+          </button>
+        </div>
+      ) : (
+        <input id={id} type={type} className={cx(error && "invalid", className)} {...rest} />
+      )}
     </Field>
   );
 }

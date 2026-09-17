@@ -1,8 +1,37 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import type { InputHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
+}
+
+export function PasswordInput({ className, style, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <input type={visible ? "text" : "password"} className={className} style={{ paddingRight: 44, ...style }} {...rest} />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "Hide password" : "Show password"}
+        style={{
+          position: "absolute",
+          right: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: "var(--color-text-muted)",
+          display: "flex",
+          padding: 4,
+        }}
+      >
+        {visible ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+      </button>
+    </div>
+  );
 }
 
 export function Spinner({ size = 18 }: { size?: number }) {
