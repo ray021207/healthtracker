@@ -125,6 +125,7 @@ function ClinicalProfileView({ profile, gender }: { profile: Record<string, unkn
           <MetricRow label="Height" value={height} unit="cm" />
           <MetricRow label="Weight" value={weight} unit="lb" />
           <MetricRow label="Target Weight" value={targetWeight} unit="lb" />
+          <MetricRow label="Abdomen width" value={num(profile.abdomenIn)} unit="in" />
           <MetricRow label="BMI" value={bmi} range="18.5–24.9" status={bmiStatus(bmi)} />
         </Card>
 
