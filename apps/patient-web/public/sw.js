@@ -39,7 +39,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  let data = { title: "Monark Health", body: "You have a new notification.", url: "/home" };
+  let data = { title: "HECOS", body: "You have a new notification.", url: "/home" };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch {

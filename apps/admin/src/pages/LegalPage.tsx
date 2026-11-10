@@ -14,14 +14,14 @@ function TermsContent() {
   return (
     <>
       <p style={bodyStyle}>
-        These Terms of Service ("Terms") govern access to and use of the Monark Health admin portal
+        These Terms of Service ("Terms") govern access to and use of the HECOS admin portal
         by clinic staff and administrators ("you"). By signing in, you agree to these Terms.
       </p>
 
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Purpose of the Service</h2>
         <p style={bodyStyle}>
-          Monark Health provides tools for clinics to manage patient health profiles, generate
+          HECOS provides tools for clinics to manage patient health profiles, generate
           personalised wellness plans, and track patient progress. It is a clinical support tool,
           not a substitute for professional medical judgment.
         </p>
@@ -74,7 +74,7 @@ function PrivacyContent() {
   return (
     <>
       <p style={bodyStyle}>
-        This Privacy Policy explains how Monark Health collects, uses, and protects information
+        This Privacy Policy explains how HECOS collects, uses, and protects information
         within the admin portal.
       </p>
 

@@ -63,7 +63,7 @@ export async function checkAndSendReminders(now: Date = new Date()): Promise<voi
 
     try {
       await sendPushToPatient(patient.id, {
-        title: "Monark Health",
+        title: "HECOS",
         body: REMINDER_BODY,
         url: "/track",
       });

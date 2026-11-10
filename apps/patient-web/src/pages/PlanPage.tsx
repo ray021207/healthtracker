@@ -248,7 +248,7 @@ function printFullPlan(dietPlan: DietDay[], exercisePlan: ExerciseDay[], ayurved
   @media print { body { padding: 16px; } }
 </style></head><body>
 <h1>My 90-Day Wellness Plan</h1>
-<div class="meta">Monark Health · Printed ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</div>
+<div class="meta">HECOS · Printed ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</div>
 <h2>Diet Plan (90 days)</h2>${dietHTML}
 <h2>Exercise Plan (90 days)</h2>${exHTML}
 ${ayurvedicNotes.length > 0 ? `<h2>Ayurvedic Recommendations</h2>${ayurHTML}` : ""}

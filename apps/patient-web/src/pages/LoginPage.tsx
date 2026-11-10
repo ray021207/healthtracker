@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Leaf, Check } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { useAuth } from "../lib/auth";
 import { Alert, Button, PasswordInput } from "../components/ui";
@@ -64,22 +64,16 @@ export default function LoginPage() {
         <div>
           <div
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: "var(--radius-lg)",
-              background: "var(--color-surface)",
-              color: "var(--color-primary)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 20,
-              boxShadow: "var(--shadow-sm)",
             }}
           >
-            <Leaf size={30} strokeWidth={1.5} />
+            <img src="/hecos-logo.svg" alt="HECOS logo" width={88} height={88} style={{ display: "block" }} />
           </div>
           <div style={{ fontSize: 36, fontWeight: 600, letterSpacing: -0.8, color: "var(--color-text-primary)", lineHeight: 1.1 }}>
-            Monark Health
+            HECOS
           </div>
           <div style={{ fontSize: 15, color: "var(--color-text-secondary)", marginTop: 12, maxWidth: 380, lineHeight: 1.6 }}>
             Personalised care, tracked daily, wherever you are.

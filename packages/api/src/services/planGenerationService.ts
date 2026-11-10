@@ -97,7 +97,7 @@ function expandToNinetyDays(phases: z.infer<typeof phaseSchema>[]) {
 }
 
 export const buildSystemPrompt = () => `
-You are a clinical nutrition and exercise specialist working for Monark Health Solutions clinic.
+You are a clinical nutrition and exercise specialist working for HECOS (Healing Horizons – Comprehensive Health Care Solutions) clinic.
 You generate highly personalised, medically-informed 90-day wellness plans.
 You must always:
 - Apply the specified diet style strictly

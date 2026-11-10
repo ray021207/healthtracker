@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Leaf } from "lucide-react";
 
 import { hasChangedDemoCredentials, useAuth } from "../lib/auth";
 import { Alert, Button, TextInput } from "../components/ui";
@@ -49,20 +48,15 @@ export function LoginPage() {
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: "var(--radius-lg)",
-              background: "var(--color-primary-subtle)",
-              color: "var(--color-primary)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 16,
             }}
           >
-            <Leaf size={26} strokeWidth={1.5} />
+            <img src="/hecos-logo.svg" alt="HECOS logo" width={72} height={72} style={{ display: "block" }} />
           </div>
-          <h1 style={{ fontSize: 24 }}>Monark Health Admin</h1>
+          <h1 style={{ fontSize: 24 }}>HECOS Admin</h1>
           <p style={{ fontSize: 14, color: "var(--color-text-secondary)", marginTop: 6 }}>
             Practitioner &amp; clinic management
           </p>

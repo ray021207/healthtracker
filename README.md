@@ -1,6 +1,6 @@
-# Monark Health Solutions
+# HECOS
 
-Monorepo for Monark Health Solutions — a clinic wellness platform where
+Monorepo for HECOS — a clinic wellness platform where
 practitioners manage patients and generate personalised 90-day diet, exercise,
 and wellness plans, and patients track their progress.
 

@@ -14,14 +14,14 @@ function TermsContent() {
   return (
     <>
       <p style={bodyStyle}>
-        These Terms of Service ("Terms") govern your use of the Monark Health patient app. By
+        These Terms of Service ("Terms") govern your use of the HECOS patient app. By
         creating an account or signing in, you agree to these Terms.
       </p>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>1. What Monark Health Is</h2>
+        <h2 style={headingStyle}>1. What HECOS Is</h2>
         <p style={bodyStyle}>
-          Monark Health helps you track daily meals, workouts, water intake, and progress toward a
+          HECOS helps you track daily meals, workouts, water intake, and progress toward a
           90-day wellness plan created with your clinic. It is a wellness support tool and does not
           replace professional medical advice, diagnosis, or treatment.
         </p>
@@ -48,7 +48,7 @@ function TermsContent() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>4. Emergencies</h2>
         <p style={bodyStyle}>
-          Monark Health is not for emergencies. If you are experiencing a medical emergency, contact
+          HECOS is not for emergencies. If you are experiencing a medical emergency, contact
           your local emergency services immediately.
         </p>
       </section>
@@ -73,7 +73,7 @@ function PrivacyContent() {
   return (
     <>
       <p style={bodyStyle}>
-        This Privacy Policy explains what information Monark Health collects about you and how it's
+        This Privacy Policy explains what information HECOS collects about you and how it's
         used and protected.
       </p>
 

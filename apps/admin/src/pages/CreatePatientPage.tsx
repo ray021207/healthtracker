@@ -32,7 +32,7 @@ function printCredentials(c: Credentials) {
   .install-col strong { display: block; font-size: 12px; color: #1E1A2E; margin-bottom: 4px; }
   .install-col ol { margin: 0; padding-left: 16px; }
 </style></head><body>
-<div class="logo">Monark Health</div>
+<div class="logo"><img src="${window.location.origin}/hecos-logo.svg" alt="" width="64" height="64" style="display:block;margin-bottom:8px" />HECOS</div>
 <h2>Patient Welcome Card</h2>
 <div class="sub">Share this card with the patient at their first visit.</div>
 <div class="field"><label>Full Name</label><span>${c.firstName} ${c.lastName}</span></div>
@@ -42,7 +42,7 @@ function printCredentials(c: Credentials) {
 <div class="field"><label>Temporary Password</label><div class="pwd">${c.temporaryPassword}</div></div>
 <div class="notice">The patient must change this password on first login via the Patient Portal at <strong>${patientPortalLabel}</strong>. This card contains confidential information — store or shred securely.</div>
 <div class="install">
-  <h3>Add Monark Health to Your Home Screen</h3>
+  <h3>Add HECOS to Your Home Screen</h3>
   <div class="install-cols">
     <div class="install-col">
       <strong>iPhone / iPad</strong>

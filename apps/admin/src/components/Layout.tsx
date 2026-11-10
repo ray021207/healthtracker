@@ -9,7 +9,6 @@ import {
   ScrollText,
   Settings,
   LogOut,
-  Leaf,
 } from "lucide-react";
 
 import { useAuth } from "../lib/auth";
@@ -45,7 +44,7 @@ const TITLE_RULES: Array<[RegExp, string]> = [
 ];
 
 function titleForPath(path: string): string {
-  return TITLE_RULES.find(([re]) => re.test(path))?.[1] ?? "Monark Health";
+  return TITLE_RULES.find(([re]) => re.test(path))?.[1] ?? "HECOS";
 }
 
 export function Layout() {
@@ -63,9 +62,9 @@ export function Layout() {
       <aside className="sidebar">
         <div className="sidebar-brand">
           <span className="mark">
-            <Leaf size={18} strokeWidth={1.5} />
+            <img src="/hecos-logo.svg" alt="HECOS logo" width={36} height={36} style={{ display: "block" }} />
           </span>
-          <span className="name">Monark Health</span>
+          <span className="name">HECOS</span>
         </div>
 
         <nav className="sidebar-nav">

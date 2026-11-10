@@ -31,7 +31,7 @@ export async function enableReminder(reminderTime: string, accessToken: string):
     throw new Error(
       isLikelyInstalled()
         ? "This device doesn't support notifications."
-        : "Install Monark Health to your home screen first, then enable reminders from there.",
+        : "Install HECOS to your home screen first, then enable reminders from there.",
     );
   }
 

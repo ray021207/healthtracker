@@ -32,12 +32,12 @@ function printSectionTitle(doc: PDFKit.PDFDocument, title: string): void {
 export async function generateDietPDF(context: PlanContext): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
 
-  doc.fontSize(24).fillColor("#0B3D2E").text("Monark Health - Diet Plan", { align: "center" });
+  doc.fontSize(24).fillColor("#0B3D2E").text("HECOS - Diet Plan", { align: "center" });
   doc.moveDown();
   doc.fontSize(12).fillColor("#111111").text(`Patient: ${context.patientName}`);
   doc.text(`Plan Start: ${context.startDate.toDateString()}`);
   doc.text(`Total Days: ${context.totalDays}`);
-  doc.text(`Clinic: ${context.clinicName ?? "Monark Health"}`);
+  doc.text(`Clinic: ${context.clinicName ?? "HECOS"}`);
 
   printSectionTitle(doc, "Wellness Notes & Disclaimer");
   doc
@@ -94,7 +94,7 @@ export async function generateDietPDF(context: PlanContext): Promise<Buffer> {
 export async function generateExercisePDF(context: PlanContext): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
 
-  doc.fontSize(24).fillColor("#0B3D2E").text("Monark Health - Exercise Plan", { align: "center" });
+  doc.fontSize(24).fillColor("#0B3D2E").text("HECOS - Exercise Plan", { align: "center" });
   doc.moveDown();
   doc.fontSize(12).fillColor("#111111").text(`Patient: ${context.patientName}`);
   doc.text(`Program Length: ${context.totalDays} days`);

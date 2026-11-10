@@ -179,10 +179,7 @@ h3 { font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
   border-bottom: 1px solid var(--color-border);
 }
 .sidebar-brand .mark {
-  width: 32px; height: 32px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }

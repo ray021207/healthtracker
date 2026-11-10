@@ -1,6 +1,6 @@
 {
-  "name": "Monark Health",
-  "short_name": "Monark",
+  "name": "HECOS",
+  "short_name": "HECOS",
   "description": "Track your 90-day wellness plan — meals, workouts, water, and progress.",
   "start_url": "/home",
   "scope": "/",

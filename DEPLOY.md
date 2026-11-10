@@ -1,4 +1,4 @@
-# Deploying Monark Health for free (Neon + Render + Vercel)
+# Deploying HECOS for free (Neon + Render + Vercel)
 
 No credit card required anywhere in this path. Do the steps in order — each one feeds the next.
 

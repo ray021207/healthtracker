@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, CalendarCheck, TrendingUp, User, Leaf, LogOut, Sparkles, X } from "lucide-react";
+import { Home, ClipboardList, CalendarCheck, TrendingUp, User, LogOut, Sparkles, X } from "lucide-react";
 
 import { useAuth } from "../lib/auth";
 import { usePlanGeneration } from "../lib/planGeneration";
@@ -32,9 +32,9 @@ export default function Layout() {
       <header className="app-header">
         <div className="brand">
           <span className="mark">
-            <Leaf size={18} strokeWidth={1.5} />
+            <img src="/hecos-logo.svg" alt="HECOS logo" width={36} height={36} style={{ display: "block" }} />
           </span>
-          <span className="name">Monark Health</span>
+          <span className="name">HECOS</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-secondary font-medium">
