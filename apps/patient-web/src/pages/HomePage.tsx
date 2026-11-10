@@ -74,6 +74,7 @@ export default function HomePage() {
   const [todayData, setTodayData] = useState<{ dayNumber: number; dietDay: DietDay | null; exerciseDay: ExerciseDay | null } | null>(null);
   const [progress, setProgress] = useState<{ adherencePercent: number; currentStreakDays: number; totalLoggedDays: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [careTeam, setCareTeam] = useState<{ notes: string; calories: number; protein: number; carbs: number; fat: number } | null>(null);
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -90,6 +91,17 @@ export default function HomePage() {
     Promise.all([
       api.getTodayPlan(accessToken).then((d) => d && setTodayData(d)),
       api.getProgress(accessToken).then((r) => r && setProgress(r.progress)),
+      api.getHealthProfile(accessToken).then((r) => {
+        const hp = r?.healthProfile;
+        if (!hp) return;
+        setCareTeam({
+          notes: typeof hp.clinicianNotes === "string" ? hp.clinicianNotes : "",
+          calories: Math.round(Number(hp.dailyCalorieTarget) || 0),
+          protein: Math.round(Number(hp.dailyProteinG) || 0),
+          carbs: Math.round(Number(hp.dailyCarbsG) || 0),
+          fat: Math.round(Number(hp.dailyFatG) || 0),
+        });
+      }),
     ]).finally(() => setLoading(false));
   }, [accessToken]);
 
@@ -126,6 +138,18 @@ export default function HomePage() {
               <MetricCard icon={<Flame size={20} strokeWidth={1.5} />} value={`${progress.currentStreakDays}d`} label="Current streak" onClick={() => navigate("/track")} />
               <MetricCard icon={<Target size={20} strokeWidth={1.5} />} value={`${Math.round(progress.adherencePercent)}%`} label="Adherence" onClick={() => navigate("/progress")} />
             </div>
+          )}
+
+          {careTeam && (careTeam.notes || careTeam.calories > 0) && (
+            <Card className="mb-4">
+              <div className="section-label" style={{ marginBottom: 8 }}>From your care team</div>
+              {careTeam.calories > 0 && (
+                <div style={{ fontSize: 14, marginBottom: careTeam.notes ? 10 : 0 }}>
+                  <strong>Your daily targets:</strong> {careTeam.calories} kcal · {careTeam.carbs} g carbs · {careTeam.protein} g protein · {careTeam.fat} g fat
+                </div>
+              )}
+              {careTeam.notes && <div style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{careTeam.notes}</div>}
+            </Card>
           )}
 
           {dietDay ? (

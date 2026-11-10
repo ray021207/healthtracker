@@ -51,6 +51,8 @@ model Patient {
   dailyLogs         DailyLog[]
   auditLogs         AuditLog[]
   pushSubscriptions PushSubscription[]
+  foodEntries       FoodEntry[]
+  glucoseReadings   GlucoseReading[]
 
   // Daily log reminder preferences
   reminderEnabled      Boolean   @default(false)
@@ -86,6 +88,12 @@ model HealthProfile {
   fastingGlucoseMgDl      String?
   hba1cPercent            String?
   isDiabetic              Boolean       @default(false)
+  // Waist / abdomen circumference in inches — encrypted like the other measurements.
+  abdomenIn               String?
+  // Clinician recommendations shown to the patient and fed to plan generation — encrypted.
+  clinicianNotes          String?
+  // true once a clinician has set the calorie/macro targets by hand; profile edits then keep them.
+  targetsOverridden       Boolean       @default(false)
   systolicBp              String?
   diastolicBp             String?
   activityLevel           ActivityLevel
@@ -123,6 +131,71 @@ model GeneratedPlan {
   dietPdfPath     String?
   exercisePdfPath String?
   patient         Patient    @relation(fields: [patientId], references: [id])
+}
+
+model FoodEntry {
+  id            String        @id @default(uuid())
+  patientId     String
+  logDate       DateTime      @db.Date
+  mealType      MealType
+  name          String
+  quantity      Float
+  unit          String
+  calories      Float
+  carbsG        Float         @default(0)
+  proteinG      Float         @default(0)
+  fatG          Float         @default(0)
+  plateCategory PlateCategory
+  // Approximate food volume in cups — the plate method is a volume guide (1/2 veg, 1/4 protein, 1/4 carb).
+  volumeCups    Float         @default(0)
+  source        FoodSource    @default(MANUAL)
+  createdAt     DateTime      @default(now())
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, logDate])
+}
+
+model GlucoseReading {
+  id         String         @id @default(uuid())
+  patientId  String
+  logDate    DateTime       @db.Date
+  measuredAt DateTime
+  // mg/dL, encrypted at rest (AES-256-GCM) like the other lab values.
+  valueMgDl  String
+  context    GlucoseContext
+  createdAt  DateTime       @default(now())
+  patient    Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, logDate])
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum PlateCategory {
+  NONSTARCHY_VEG
+  PROTEIN
+  CARB
+  FAT_OTHER
+  DRINK
+}
+
+enum FoodSource {
+  MANUAL
+  AI_TEXT
+  AI_PHOTO
+}
+
+enum GlucoseContext {
+  FASTING
+  BEFORE_MEAL
+  AFTER_MEAL
+  BEDTIME
+  OTHER
 }
 
 model DailyLog {

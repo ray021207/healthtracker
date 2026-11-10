@@ -123,6 +123,53 @@ export type AyurvedicRec = {
   disclaimer?: string;
 };
 
+
+export type PlateCategory = "NONSTARCHY_VEG" | "PROTEIN" | "CARB" | "FAT_OTHER" | "DRINK";
+export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+export type GlucoseContext = "FASTING" | "BEFORE_MEAL" | "AFTER_MEAL" | "BEDTIME" | "OTHER";
+
+export type FoodItemDraft = {
+  name: string;
+  quantity: number;
+  unit: string;
+  calories: number;
+  carbsG: number;
+  proteinG: number;
+  fatG: number;
+  plateCategory: PlateCategory;
+  volumeCups: number;
+  source: "MANUAL" | "AI_TEXT" | "AI_PHOTO";
+  confidence?: "low" | "medium" | "high";
+};
+
+export type FoodEntry = FoodItemDraft & { id: string; mealType: MealType; logDate: string };
+
+export type DaySummary = {
+  totals: { calories: number; carbsG: number; proteinG: number; fatG: number };
+  byMeal: Record<MealType, { calories: number; count: number }>;
+  targets: { dailyCalorieTarget: number; dailyProteinG: number; dailyCarbsG: number; dailyFatG: number } | null;
+  percentOfTarget: { calories: number | null; carbs: number | null; protein: number | null; fat: number | null } | null;
+  plate: {
+    totalVolumeCups: number;
+    zones: Array<{ category: PlateCategory; volumeCups: number; sharePercent: number; goalSharePercent: number; completionPercent: number }>;
+  };
+};
+
+export type FoodDay = { entries: FoodEntry[]; summary: DaySummary };
+
+export type GlucoseReading = { id: string; logDate: string; measuredAt: string; valueMgDl: number; context: GlucoseContext };
+export type GlucoseRanges = {
+  isDiabetic: boolean;
+  note: string;
+  ranges: Partial<Record<GlucoseContext, { minMgDl?: number; maxMgDl?: number; text: string }>>;
+};
+
+export type FoodAnalysis = {
+  items: Array<Omit<FoodItemDraft, "source">>;
+  note: string | null;
+  estimated: boolean;
+};
+
 export const api = {
   getTodayPlan: (token: string) =>
     req<{ dayNumber: number; dietDay: DietDay | null; exerciseDay: ExerciseDay | null }>("/api/patient/plan/today", {}, token).catch(() => null),
@@ -138,6 +185,32 @@ export const api = {
 
   submitDailyLog: (data: Record<string, unknown>, token: string) =>
     req<{ log: Record<string, unknown> }>("/api/patient/logs", { method: "POST", body: JSON.stringify(data) }, token),
+
+  analyzeFoodText: (text: string, token: string) =>
+    req<FoodAnalysis>("/api/patient/food/analyze", { method: "POST", body: JSON.stringify({ text }) }, token),
+
+  analyzeFoodPhoto: (imageBase64: string, mediaType: string, caption: string | undefined, token: string) =>
+    req<FoodAnalysis>(
+      "/api/patient/food/analyze-photo",
+      { method: "POST", body: JSON.stringify({ imageBase64, mediaType, caption }) },
+      token,
+    ),
+
+  getFood: (date: string, token: string) => req<FoodDay>(`/api/patient/food?date=${date}`, {}, token),
+
+  addFood: (data: { logDate: string; mealType: MealType; items: FoodItemDraft[] }, token: string) =>
+    req<FoodDay>("/api/patient/food", { method: "POST", body: JSON.stringify(data) }, token),
+
+  deleteFood: (id: string, token: string) => req<FoodDay>(`/api/patient/food/${id}`, { method: "DELETE" }, token),
+
+  getGlucose: (date: string, token: string) =>
+    req<{ readings: GlucoseReading[]; referenceRanges: GlucoseRanges }>(`/api/patient/glucose?date=${date}`, {}, token),
+
+  addGlucose: (data: { logDate: string; valueMgDl: number; context: GlucoseContext }, token: string) =>
+    req<{ reading: GlucoseReading }>("/api/patient/glucose", { method: "POST", body: JSON.stringify(data) }, token),
+
+  deleteGlucose: (id: string, token: string) =>
+    req<{ deleted: boolean }>(`/api/patient/glucose/${id}`, { method: "DELETE" }, token),
 
   changePassword: (currentPassword: string, newPassword: string, token: string) =>
     req<{ message: string }>("/api/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }, token),

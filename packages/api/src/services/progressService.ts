@@ -1,11 +1,22 @@
 import { prisma } from "../lib/prisma.js";
+import { decrypt } from "../utils/encryption.js";
+import { glucoseRangesFor } from "../utils/glucoseRanges.js";
+import { summarizeAdherence, summarizeDay } from "../utils/nutritionSummary.js";
 import { normalizeWeightToLb } from "../utils/unitNormalization.js";
+import { getIsDiabetic, getNutritionTargets, toIsoDate } from "./foodLogService.js";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const NUTRITION_WINDOW_DAYS = 30;
+const GLUCOSE_WINDOW_DAYS = 90;
 
 interface ProgressStats {
   totalLoggedDays: number;
   adherencePercent: number;
   currentStreakDays: number;
   weightTrend: Array<{ date: string; weightLb: number }>;
+  glucoseTrend: Array<{ date: string; measuredAt: Date; valueMgDl: number; context: string }>;
+  glucoseRanges: ReturnType<typeof glucoseRangesFor>;
+  nutrition: ReturnType<typeof summarizeAdherence> & { windowDays: number };
 }
 
 function calculateCurrentStreak(logDates: Date[]): number {
@@ -83,10 +94,44 @@ export async function getPatientProgressStats(patientId: string): Promise<Progre
 
   const currentStreakDays = calculateCurrentStreak(logs.map((log) => log.logDate));
 
+  const since = new Date(Date.now() - NUTRITION_WINDOW_DAYS * DAY_MS);
+  const [foodEntries, glucoseRows, targets, isDiabetic] = await Promise.all([
+    prisma.foodEntry.findMany({ where: { patientId, logDate: { gte: since } }, orderBy: { logDate: "asc" } }),
+    prisma.glucoseReading.findMany({
+      where: { patientId, measuredAt: { gte: new Date(Date.now() - GLUCOSE_WINDOW_DAYS * DAY_MS) } },
+      orderBy: { measuredAt: "asc" },
+    }),
+    getNutritionTargets(patientId),
+    getIsDiabetic(patientId),
+  ]);
+
+  const byDate = new Map<string, typeof foodEntries>();
+  for (const entry of foodEntries) {
+    const key = toIsoDate(entry.logDate);
+    byDate.set(key, [...(byDate.get(key) ?? []), entry]);
+  }
+  const nutrition = {
+    ...summarizeAdherence(
+      [...byDate.entries()].map(([date, entries]) => ({ date, summary: summarizeDay(entries, targets) })),
+      targets,
+    ),
+    windowDays: NUTRITION_WINDOW_DAYS,
+  };
+
+  const glucoseTrend = glucoseRows.map((row) => ({
+    date: toIsoDate(row.logDate),
+    measuredAt: row.measuredAt,
+    valueMgDl: Number(decrypt(row.valueMgDl)),
+    context: row.context,
+  }));
+
   return {
     totalLoggedDays,
     adherencePercent,
     currentStreakDays,
     weightTrend,
+    glucoseTrend,
+    glucoseRanges: glucoseRangesFor(isDiabetic),
+    nutrition,
   };
 }

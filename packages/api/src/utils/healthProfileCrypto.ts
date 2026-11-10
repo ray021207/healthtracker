@@ -11,6 +11,8 @@ export interface HealthProfilePlainInput {
   allergies: string[];
   medicalConditions: string[];
   medications: string[];
+  abdomenIn?: number | null;
+  clinicianNotes?: string | null;
 }
 
 export interface HealthProfileEncryptedFields {
@@ -24,6 +26,8 @@ export interface HealthProfileEncryptedFields {
   allergies: string | null;
   medicalConditions: string | null;
   medications: string | null;
+  abdomenIn: string | null;
+  clinicianNotes: string | null;
 }
 
 const encryptNumber = (value: number | null | undefined): string | null =>
@@ -32,12 +36,23 @@ const encryptNumber = (value: number | null | undefined): string | null =>
 const decryptNumber = (value: string | null | undefined): number | null =>
   value === null || value === undefined ? null : Number(decrypt(value));
 
+const encryptText = (value: string | null | undefined): string | null =>
+  value === null || value === undefined || value === "" ? null : encrypt(value);
+
+const decryptText = (value: string | null | undefined): string | null =>
+  value === null || value === undefined ? null : decrypt(value);
+
 const encryptStringArray = (values: string[]): string => encrypt(JSON.stringify(values ?? []));
 
 const decryptStringArray = (value: string | null | undefined): string[] =>
   value === null || value === undefined ? [] : (JSON.parse(decrypt(value)) as string[]);
 
-export function encryptHealthProfileFields(input: HealthProfilePlainInput): HealthProfileEncryptedFields {
+// abdomenIn / clinicianNotes are only ever written by the admin portal. Callers that don't
+// carry them (the patient self-edit) pass the stored ciphertext through via `preserved`.
+export function encryptHealthProfileFields(
+  input: HealthProfilePlainInput,
+  preserved?: Pick<HealthProfileEncryptedFields, "abdomenIn" | "clinicianNotes">,
+): HealthProfileEncryptedFields {
   return {
     ldlMgDl: encryptNumber(input.ldlMgDl),
     hdlMgDl: encryptNumber(input.hdlMgDl),
@@ -49,6 +64,9 @@ export function encryptHealthProfileFields(input: HealthProfilePlainInput): Heal
     allergies: encryptStringArray(input.allergies),
     medicalConditions: encryptStringArray(input.medicalConditions),
     medications: encryptStringArray(input.medications),
+    abdomenIn: input.abdomenIn === undefined ? (preserved?.abdomenIn ?? null) : encryptNumber(input.abdomenIn),
+    clinicianNotes:
+      input.clinicianNotes === undefined ? (preserved?.clinicianNotes ?? null) : encryptText(input.clinicianNotes),
   };
 }
 
@@ -67,5 +85,7 @@ export function decryptHealthProfileFields<T extends HealthProfileEncryptedField
     allergies: decryptStringArray(record.allergies),
     medicalConditions: decryptStringArray(record.medicalConditions),
     medications: decryptStringArray(record.medications),
+    abdomenIn: decryptNumber(record.abdomenIn),
+    clinicianNotes: decryptText(record.clinicianNotes),
   };
 }

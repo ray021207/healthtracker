@@ -35,6 +35,8 @@ app.use(
   }),
 );
 
+// Meal photos arrive as base64 JSON; only this route gets the larger limit.
+app.use("/api/patient/food/analyze-photo", express.json({ limit: "6mb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(requestLogger);

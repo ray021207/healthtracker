@@ -85,7 +85,10 @@ export const api = {
       method: "DELETE",
     }),
   getHealthProfile: (id: string) =>
-    request<{ healthProfile: Record<string, unknown> | null }>(`/api/admin/patients/${id}/health-profile`),
+    request<{
+      healthProfile: Record<string, unknown> | null;
+      suggestedTargets?: { dailyCalorieTarget: number; dailyProteinG: number; dailyCarbsG: number; dailyFatG: number } | null;
+    }>(`/api/admin/patients/${id}/health-profile`),
   upsertHealthProfile: (id: string, payload: Record<string, unknown>) =>
     request<{ healthProfile: Record<string, unknown> }>(`/api/admin/patients/${id}/health-profile`, {
       method: "PUT",
@@ -99,6 +102,10 @@ export const api = {
     request<{ plan: Record<string, unknown> | null }>(`/api/admin/patients/${id}/plan`),
   getProgress: (id: string) =>
     request<{ progress: Record<string, unknown> }>(`/api/admin/patients/${id}/progress`),
+  getFoodLog: (id: string, days = 14) =>
+    request<{ foodLog: Array<Record<string, unknown>>; targets: Record<string, number> | null; days: number }>(
+      `/api/admin/patients/${id}/food-log?days=${days}`,
+    ),
   getAuditLogs: (params?: { action?: string; limit?: number }) => {
     const q = new URLSearchParams();
     if (params?.action) q.set("action", params.action);

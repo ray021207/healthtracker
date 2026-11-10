@@ -14,18 +14,17 @@ import {
   getAdminPatientPlan,
 } from "../services/planGenerationService.js";
 import { getPatientProgressStats } from "../services/progressService.js";
-import {
-  calculateBMI,
-  calculateBMR,
-  calculateDailyCalorieTarget,
-  calculateMacros,
-  calculateTDEE,
-  calculateTargetWeight,
-} from "../utils/clinicalCalculations.js";
+import { getNutritionTargets, publicFoodEntry, toIsoDate } from "../services/foodLogService.js";
+import { summarizeDay } from "../utils/nutritionSummary.js";
 import { generateTemporaryPassword } from "../utils/password.js";
+import {
+  buildHealthProfileData,
+  calculateAutoTargets,
+  type NutritionTargets,
+} from "../services/healthProfileService.js";
 import { getClientIp, getUserAgent } from "../utils/requestMeta.js";
 import { normalizeWeightToLb } from "../utils/unitNormalization.js";
-import { decryptHealthProfileFields, encryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
+import { decryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
 import { logger } from "../lib/logger.js";
 
 const router = Router();
@@ -63,23 +62,23 @@ const healthProfileUpsertSchema = z.object({
   medications: z.array(z.string().trim().min(1).max(150)).default([]),
   includeAyurvedic: z.boolean().optional().default(false),
   includeAntiInflammatory: z.boolean().optional().default(false),
+  // Clinician-only fields. undefined = leave as stored, null = clear (or reset targets to automatic).
+  abdomenIn: z.number().min(15).max(80).nullable().optional(),
+  clinicianNotes: z.string().trim().max(2000).nullable().optional(),
+  nutritionTargets: z
+    .object({
+      dailyCalorieTarget: z.number().min(800).max(6000),
+      dailyProteinG: z.number().min(0).max(500),
+      dailyCarbsG: z.number().min(0).max(1000),
+      dailyFatG: z.number().min(0).max(500),
+    })
+    .nullable()
+    .optional(),
 });
 
 const auditLogArchiveSchema = z.object({
   olderThanDays: z.number().int().min(1).max(3650).default(90),
 });
-
-function calculateAge(dateOfBirth: Date): number {
-  const now = new Date();
-  let age = now.getFullYear() - dateOfBirth.getFullYear();
-  const monthDelta = now.getMonth() - dateOfBirth.getMonth();
-
-  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < dateOfBirth.getDate())) {
-    age -= 1;
-  }
-
-  return age;
-}
 
 router.get("/patients", async (req, res, next) => {
   try {
@@ -478,6 +477,8 @@ router.get("/patients/:id/health-profile", async (req, res, next) => {
       where: { id: req.params.id, clinicId: user.clinicId },
       select: {
         id: true,
+        dateOfBirth: true,
+        gender: true,
         healthProfile: true,
       },
     });
@@ -505,12 +506,24 @@ router.get("/patients/:id/health-profile", async (req, res, next) => {
       return;
     }
 
+    // What the automatic calculation would give today, so the admin can compare against any override.
+    let suggestedTargets: NutritionTargets | null = null;
+    try {
+      suggestedTargets = calculateAutoTargets(
+        { ...profile, weightKg: normalizeWeightToLb(profile.weightKg) },
+        patient,
+      ).targets;
+    } catch {
+      suggestedTargets = null; // gender OTHER — no automatic calculation available
+    }
+
     res.status(200).json({
       healthProfile: {
         ...decryptHealthProfileFields(profile),
         weightKg: normalizeWeightToLb(profile.weightKg),
         targetWeightKg: normalizeWeightToLb(profile.targetWeightKg),
       },
+      suggestedTargets,
     });
   } catch (error) {
     next(error);
@@ -544,56 +557,19 @@ router.put("/patients/:id/health-profile", async (req, res, next) => {
       return;
     }
 
-    const ageYears = calculateAge(patient.dateOfBirth);
-    const bmi = calculateBMI(parsed.weightKg, parsed.heightCm);
-    const targetWeightKg = calculateTargetWeight(parsed.heightCm);
-    const bmr = calculateBMR(parsed.weightKg, parsed.heightCm, ageYears, patient.gender);
-    const tdee = calculateTDEE(bmr, parsed.activityLevel);
-    const dailyCalorieTarget = calculateDailyCalorieTarget(tdee, parsed.weightKg, targetWeightKg);
-    const macros = calculateMacros(dailyCalorieTarget, parsed.dietStyle);
-    const encryptedFields = encryptHealthProfileFields(parsed);
+    const { nutritionTargets, ...profileInput } = parsed;
+    const existing = await prisma.healthProfile.findUnique({ where: { patientId: patient.id } });
+    const data = buildHealthProfileData({
+      input: profileInput,
+      patient,
+      existing,
+      targetsChange: nutritionTargets,
+    });
 
     const healthProfile = await prisma.healthProfile.upsert({
       where: { patientId: patient.id },
-      create: {
-        patientId: patient.id,
-        heightCm: parsed.heightCm,
-        weightKg: parsed.weightKg,
-        targetWeightKg,
-        bmi,
-        ...encryptedFields,
-        isDiabetic: parsed.isDiabetic,
-        activityLevel: parsed.activityLevel,
-        dietStyle: parsed.dietStyle,
-        dietaryRestrictions: parsed.dietaryRestrictions,
-        includeAyurvedic: parsed.includeAyurvedic,
-        includeAntiInflammatory: parsed.includeAntiInflammatory,
-        bmr,
-        tdee,
-        dailyCalorieTarget,
-        dailyProteinG: macros.proteinG,
-        dailyCarbsG: macros.carbsG,
-        dailyFatG: macros.fatG,
-      },
-      update: {
-        heightCm: parsed.heightCm,
-        weightKg: parsed.weightKg,
-        targetWeightKg,
-        bmi,
-        ...encryptedFields,
-        isDiabetic: parsed.isDiabetic,
-        activityLevel: parsed.activityLevel,
-        dietStyle: parsed.dietStyle,
-        dietaryRestrictions: parsed.dietaryRestrictions,
-        includeAyurvedic: parsed.includeAyurvedic,
-        includeAntiInflammatory: parsed.includeAntiInflammatory,
-        bmr,
-        tdee,
-        dailyCalorieTarget,
-        dailyProteinG: macros.proteinG,
-        dailyCarbsG: macros.carbsG,
-        dailyFatG: macros.fatG,
-      },
+      create: { patientId: patient.id, ...data },
+      update: data,
     });
 
     await createAuditLog({
@@ -724,6 +700,59 @@ router.get("/patients/:id/progress", async (req, res, next) => {
     });
 
     res.status(200).json({ progress });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/patients/:id/food-log", async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user?.clinicId) {
+      res.status(403).json({ message: "Clinic context missing" });
+      return;
+    }
+
+    const target = await ensurePatientInClinic(req.params.id, user.clinicId);
+    if (!target) {
+      res.status(404).json({ message: "Patient not found" });
+      return;
+    }
+
+    const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const [entries, targets] = await Promise.all([
+      prisma.foodEntry.findMany({
+        where: { patientId: target.id, logDate: { gte: since } },
+        orderBy: [{ logDate: "desc" }, { createdAt: "asc" }],
+      }),
+      getNutritionTargets(target.id),
+    ]);
+
+    const byDate = new Map<string, typeof entries>();
+    for (const entry of entries) {
+      const key = toIsoDate(entry.logDate);
+      byDate.set(key, [...(byDate.get(key) ?? []), entry]);
+    }
+    const foodLog = [...byDate.entries()].map(([date, dayEntries]) => ({
+      date,
+      entries: dayEntries.map(publicFoodEntry),
+      summary: summarizeDay(dayEntries, targets),
+    }));
+
+    await createAuditLog({
+      actorId: user.id,
+      actorRole: user.role,
+      action: "VIEW_PATIENT",
+      resourceType: "FoodLog",
+      resourceId: target.id,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req),
+      adminId: user.id,
+      patientId: target.id,
+    });
+
+    res.status(200).json({ foodLog, targets, days });
   } catch (error) {
     next(error);
   }

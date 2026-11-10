@@ -38,3 +38,18 @@ export const planGenerationRateLimiter = rateLimit({
     message: "Too many plan generation requests. Please wait a while before trying again.",
   },
 });
+
+// Food analysis calls the LLM on every request (text or photo), so cap it per user.
+const foodWindowMinutes = Number(process.env.FOOD_ANALYSIS_RATE_LIMIT_WINDOW_MIN ?? 60);
+const foodMax = Number(process.env.FOOD_ANALYSIS_RATE_LIMIT_MAX ?? (env.isProd ? 60 : 300));
+
+export const foodAnalysisRateLimiter = rateLimit({
+  windowMs: (Number.isFinite(foodWindowMinutes) ? foodWindowMinutes : 60) * 60 * 1000,
+  max: Number.isFinite(foodMax) ? foodMax : 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id ?? "anonymous",
+  message: {
+    message: "Too many food analysis requests. Please wait a while before trying again.",
+  },
+});

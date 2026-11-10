@@ -104,7 +104,8 @@ You must always:
 - Respect all allergies and dietary restrictions absolutely
 - Follow GI index principles when isDiabetic is true
 - Include Ayurvedic and anti-inflammatory suggestions when requested, framed as wellness notes only (never as medical prescriptions)
-- Base all calorie and macro values on the provided clinical calculations
+- Base all calorie and macro values on the provided daily targets (set by the clinic's clinician); each day's totalCalories must land within 5% of the daily calorie target
+- Follow the clinician's recommendations when they are provided, unless they conflict with an allergy or dietary restriction, which always wins
 - Phase exercise intensity progressively: Month 1 foundation, Month 2 build, Month 3 peak
 - Respond ONLY with valid JSON matching the specified schema exactly
 - Never include markdown, backticks, or any text outside the JSON
@@ -131,11 +132,12 @@ PATIENT CLINICAL DATA:
 - BMI: ${profile.bmi.toFixed(1)}
 - BMR: ${profile.bmr} kcal/day
 - TDEE: ${profile.tdee} kcal/day
-- Daily calorie target: ${profile.dailyCalorieTarget} kcal
+- Daily calorie target (clinician-set): ${profile.dailyCalorieTarget} kcal
 - Protein target: ${profile.dailyProteinG}g/day
 - Carbs target: ${profile.dailyCarbsG}g/day
 - Fat target: ${profile.dailyFatG}g/day
 - Activity level: ${profile.activityLevel}
+- Waist (abdomen) circumference: ${profile.abdomenIn != null ? `${profile.abdomenIn} in` : "not provided"}
 
 HEALTH MARKERS:
 - LDL: ${profile.ldlMgDl ?? "not provided"} mg/dL
@@ -152,6 +154,9 @@ DIET PREFERENCES:
 - Allergies: ${profile.allergies.join(", ") || "none"}
 - Medical conditions: ${profile.medicalConditions.join(", ") || "none"}
 - Current medications: ${profile.medications.join(", ") || "none"}
+
+CLINICIAN RECOMMENDATIONS (from the care team — follow these):
+${profile.clinicianNotes ? profile.clinicianNotes : "none"}
 
 WELLNESS FLAGS:
 - Include Ayurvedic suggestions: ${profile.includeAyurvedic}

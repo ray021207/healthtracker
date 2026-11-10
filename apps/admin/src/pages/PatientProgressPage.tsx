@@ -5,6 +5,13 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 
 import { api } from "../lib/api";
 import { Button, Card, EmptyState, Skeleton } from "../components/ui";
+import { FoodLogView } from "../components/FoodLogView";
+import { GlucoseChart } from "../components/GlucoseChart";
+import { NutritionAdherence } from "../components/NutritionAdherence";
+import type { FoodLogDay, GlucosePoint, GlucoseRanges, NutritionAdherence as Adherence } from "../lib/nutrition";
+
+// Keys rendered by dedicated components below, so they are skipped in the generic stat tiles.
+const DEDICATED_KEYS = new Set(["weightTrend", "glucoseTrend", "glucoseRanges", "nutrition"]);
 
 function humanize(key: string): string {
   return key
@@ -24,7 +31,17 @@ export function PatientProgressPage() {
     enabled: Boolean(id),
   });
 
+  const { data: foodData, isLoading: foodLoading } = useQuery({
+    queryKey: ["food-log", id],
+    queryFn: () => api.getFoodLog(id),
+    enabled: Boolean(id),
+  });
+
   const progress = (data?.progress ?? {}) as Record<string, unknown>;
+  const glucoseTrend = (Array.isArray(progress.glucoseTrend) ? progress.glucoseTrend : []) as GlucosePoint[];
+  const glucoseRanges = (progress.glucoseRanges ?? null) as GlucoseRanges | null;
+  const nutrition = (progress.nutrition ?? null) as Adherence | null;
+  const foodLog = (foodData?.foodLog ?? []) as unknown as FoodLogDay[];
   const entries = Object.entries(progress);
   const weightTrend = Array.isArray(progress.weightTrend)
     ? (progress.weightTrend as Array<{ date?: unknown; weightKg?: unknown; weightLb?: unknown }>).filter(
@@ -36,8 +53,8 @@ export function PatientProgressPage() {
     weightLb: Number(Number(point.weightLb ?? point.weightKg).toFixed(1)),
   }));
 
-  const scalars = entries.filter(([k, v]) => k !== "weightTrend" && (v == null || typeof v !== "object"));
-  const objects = entries.filter(([k, v]) => k !== "weightTrend" && v != null && typeof v === "object");
+  const scalars = entries.filter(([k, v]) => !DEDICATED_KEYS.has(k) && (v == null || typeof v !== "object"));
+  const objects = entries.filter(([k, v]) => !DEDICATED_KEYS.has(k) && v != null && typeof v === "object");
 
   return (
     <div className="page-enter">
@@ -92,6 +109,12 @@ export function PatientProgressPage() {
               </div>
             )}
           </Card>
+
+          <GlucoseChart points={glucoseTrend} ranges={glucoseRanges} />
+
+          {nutrition && <NutritionAdherence data={nutrition} />}
+
+          <FoodLogView days={foodLog} loading={foodLoading} targetCalories={foodData?.targets?.dailyCalorieTarget} />
 
           {scalars.length > 0 && (
             <div className="grid-3">

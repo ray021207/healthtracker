@@ -11,22 +11,17 @@ import { generateDietPDF, generateExercisePDF } from "../services/pdfService.js"
 import { getPatientProgressStats } from "../services/progressService.js";
 import { getClientIp, getUserAgent } from "../utils/requestMeta.js";
 import { ActivityLevel, DietStyle } from "@prisma/client";
-import {
-  calculateBMI,
-  calculateBMR,
-  calculateDailyCalorieTarget,
-  calculateMacros,
-  calculateTDEE,
-  calculateTargetWeight,
-} from "../utils/clinicalCalculations.js";
 import { normalizeWeightToLb } from "../utils/unitNormalization.js";
-import { decryptHealthProfileFields, encryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
+import { decryptHealthProfileFields } from "../utils/healthProfileCrypto.js";
 import { env } from "../config/env.js";
+import patientFoodRoutes from "./patientFoodRoutes.js";
+import { buildHealthProfileData } from "../services/healthProfileService.js";
 import { logger } from "../lib/logger.js";
 
 const router = Router();
 
 router.use(authenticate, authorizeRole("PATIENT"));
+router.use(patientFoodRoutes);
 
 const dayParamSchema = z.object({
   dayNumber: z.coerce.number().int().min(1).max(90),
@@ -79,14 +74,6 @@ const patientHealthProfileSchema = z.object({
   includeAyurvedic: z.boolean().optional().default(true),
   includeAntiInflammatory: z.boolean().optional().default(false),
 });
-
-function calcPatientAge(dateOfBirth: Date): number {
-  const now = new Date();
-  let age = now.getFullYear() - dateOfBirth.getFullYear();
-  const m = now.getMonth() - dateOfBirth.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < dateOfBirth.getDate())) age -= 1;
-  return age;
-}
 
 router.get("/profile", async (req, res, next) => {
   try {
@@ -604,56 +591,14 @@ router.put("/health-profile", async (req, res, next) => {
       return;
     }
 
-    const ageYears = calcPatientAge(patient.dateOfBirth);
-    const bmi = calculateBMI(parsed.weightKg, parsed.heightCm);
-    const targetWeightKg = calculateTargetWeight(parsed.heightCm);
-    const bmr = calculateBMR(parsed.weightKg, parsed.heightCm, ageYears, patient.gender);
-    const tdee = calculateTDEE(bmr, parsed.activityLevel);
-    const dailyCalorieTarget = calculateDailyCalorieTarget(tdee, parsed.weightKg, targetWeightKg);
-    const macros = calculateMacros(dailyCalorieTarget, parsed.dietStyle);
-    const encryptedFields = encryptHealthProfileFields(parsed);
+    const existing = await prisma.healthProfile.findUnique({ where: { patientId: patient.id } });
+    // Keeps clinician-owned fields (abdomen, recommendations, overridden targets) intact.
+    const data = buildHealthProfileData({ input: parsed, patient, existing });
 
     const healthProfile = await prisma.healthProfile.upsert({
       where: { patientId: patient.id },
-      create: {
-        patientId: patient.id,
-        heightCm: parsed.heightCm,
-        weightKg: parsed.weightKg,
-        targetWeightKg,
-        bmi,
-        ...encryptedFields,
-        isDiabetic: parsed.isDiabetic,
-        activityLevel: parsed.activityLevel,
-        dietStyle: parsed.dietStyle,
-        dietaryRestrictions: parsed.dietaryRestrictions,
-        includeAyurvedic: parsed.includeAyurvedic,
-        includeAntiInflammatory: parsed.includeAntiInflammatory,
-        bmr,
-        tdee,
-        dailyCalorieTarget,
-        dailyProteinG: macros.proteinG,
-        dailyCarbsG: macros.carbsG,
-        dailyFatG: macros.fatG,
-      },
-      update: {
-        heightCm: parsed.heightCm,
-        weightKg: parsed.weightKg,
-        targetWeightKg,
-        bmi,
-        ...encryptedFields,
-        isDiabetic: parsed.isDiabetic,
-        activityLevel: parsed.activityLevel,
-        dietStyle: parsed.dietStyle,
-        dietaryRestrictions: parsed.dietaryRestrictions,
-        includeAyurvedic: parsed.includeAyurvedic,
-        includeAntiInflammatory: parsed.includeAntiInflammatory,
-        bmr,
-        tdee,
-        dailyCalorieTarget,
-        dailyProteinG: macros.proteinG,
-        dailyCarbsG: macros.carbsG,
-        dailyFatG: macros.fatG,
-      },
+      create: { patientId: patient.id, ...data },
+      update: data,
     });
 
     await createAuditLog({
